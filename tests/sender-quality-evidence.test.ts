@@ -14,7 +14,7 @@ import {
   collectNativeSenderQualityFromReport,
   createNativeSenderQualityAccumulator,
   createStatsAccumulator,
-} from "../src/client/webrtc/stats.ts";
+} from "../src/client/webrtc/stats";
 
 function report(
   timestamp: number,

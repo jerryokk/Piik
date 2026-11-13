@@ -2,9 +2,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { CaptureSourcePicker } from "../src/client/components/living/CaptureSourcePicker";
-import { AudioExclusionSelect } from "../src/client/components/living/AudioExclusionSelect";
-import { CameraSources } from "../src/client/components/living/CameraSources";
+import { CaptureSourcePicker } from "../src/client/ui/components/share/CaptureSourcePicker";
+import { AudioExclusionSelect } from "../src/client/ui/components/share/AudioExclusionSelect";
+import { CameraSources } from "../src/client/ui/components/share/CameraSources";
 import { setCopy, t } from "../src/client/ui/copy";
 
 import {

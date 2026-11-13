@@ -9,8 +9,8 @@ import {
   hostFailureChecks,
   hostServerErrorKey,
   sourceSwitchNotice,
-} from "../src/client/pages/host-page-notices.ts";
-import { shouldPauseLocalPreview } from "../src/client/components/living/use-host-preview-playback";
+} from "../src/client/pages/host/notices.ts";
+import { shouldPauseLocalPreview } from "../src/client/ui/components/playback/use-host-preview-playback";
 
 setCopy({ lang: "zh" });
 

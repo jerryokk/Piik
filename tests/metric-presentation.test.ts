@@ -1,8 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it } from "vitest";
-import { MetricCells } from "../src/client/components/living/Metrics";
-import { ViewerOverview } from "../src/client/components/living/ViewerOverview";
+import { MetricCells } from "../src/client/ui/components/people/Metrics";
+import { ViewerOverview } from "../src/client/ui/components/people/ViewerOverview";
 import { EMPTY_METRICS } from "../src/client/types";
 import { setCopy, t } from "../src/client/ui/copy";
 import { STATUS_CATALOG } from "../src/client/ui/media-status";

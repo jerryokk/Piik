@@ -4,8 +4,8 @@ import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AppConnectionButton } from "../src/client/components/living/AppConnectionButton";
-import { CaptureSourcePicker } from "../src/client/components/living/CaptureSourcePicker";
+import { AppConnectionButton } from "../src/client/ui/components/shell/AppConnectionButton";
+import { CaptureSourcePicker } from "../src/client/ui/components/share/CaptureSourcePicker";
 
 describe("shared App connection entry", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -38,7 +38,7 @@ describe("shared App connection entry", () => {
 // Exercise the button's actual operation and unmount effect without a Browser.
 // Discovery has separate transport tests; this covers who may activate a page.
 const source = ts.createSourceFile("AppConnectionButton.tsx", readFileSync(
-  new URL("../src/client/components/living/AppConnectionButton.tsx", import.meta.url), "utf8",
+  new URL("../src/client/ui/components/shell/AppConnectionButton.tsx", import.meta.url), "utf8",
 ), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 let connect: string | undefined;
 let rememberBuild: string | undefined;
@@ -61,7 +61,7 @@ const settle = () => new Promise<void>(resolve => setImmediate(resolve));
 const site = "https://site.example";
 const approval = `http://127.0.0.1:39721/client?site=${encodeURIComponent(site)}`;
 
-function mount(activated = false, state: "idle" | "ready" = "idle", android = false) {
+function mount(activated = false, state: "idle" | "ready" = "idle") {
   const popup = { closed: false, close: vi.fn(() => { popup.closed = true; }) };
   const window = Object.assign(new EventTarget(), { open: vi.fn((): typeof popup | null => popup), location: { origin: site, assign: vi.fn() } });
   const document = Object.assign(new EventTarget(), { visibilityState: "visible" });
@@ -81,17 +81,16 @@ function mount(activated = false, state: "idle" | "ready" = "idle", android = fa
   const onConnected = vi.fn();
   const operation = runInNewContext(executable, {
     window, document, pending, healthCheck, help, showHelp, setState, setBuild, activateClient, onConnected, AbortController, URL,
-    wakeURL: android ? "intent://app#Intent;scheme=piik;package=tv.piik.android;end" : null,
     state, isClientActivated: () => activated,
     watchClientActivation: (changed: () => void) => {
       window.addEventListener("activation", changed);
       return () => window.removeEventListener("activation", changed);
     },
     require: (path: string) => {
-      if (path !== "../../native/client") throw new Error(`Unexpected dependency: ${path}`);
+      if (path !== "../../../native/client") throw new Error(`Unexpected dependency: ${path}`);
       return native;
     },
-  }) as { connect: (wake?: boolean) => Promise<void>; cleanup: () => void };
+  }) as { connect: () => Promise<void>; cleanup: () => void };
   function message(overrides: Record<string, unknown> = {}) {
     window.dispatchEvent(Object.assign(new Event("message"), {
       source: popup, origin: new URL(approval).origin, data: { type: "piik-app-approved", site }, ...overrides,
@@ -105,7 +104,7 @@ function mount(activated = false, state: "idle" | "ready" = "idle", android = fa
 describe("App connection approval", () => {
   it("uses the approved App's build and drops credentials from the update input", async () => {
     const page = mount(true);
-    const build = { version: "v2.5.1", revision: "a".repeat(40), packageTarget: "android-universal" };
+    const build = { version: "v2.5.1", revision: "a".repeat(40), packageTarget: "windows-amd64" };
     page.native.discoverNativeHealth.mockResolvedValue({ ...build, token: "local-secret" });
     page.window.dispatchEvent(new Event("focus"));
     await settle();
@@ -122,42 +121,6 @@ describe("App connection approval", () => {
     expect(page.window.open).not.toHaveBeenCalled();
     expect(page.activateClient).toHaveBeenCalledOnce();
     expect(page.onConnected).toHaveBeenCalledOnce();
-    expect(page.pending.current).toBeNull();
-    page.cleanup();
-  });
-
-  it("wakes Android in the original tab, then resumes discovery and explicit approval on return", async () => {
-    const page = mount(false, "idle", true);
-    await page.connect(true);
-    expect(page.window.location.assign).toHaveBeenCalledWith("intent://app#Intent;scheme=piik;package=tv.piik.android;end");
-    expect(page.window.open).not.toHaveBeenCalled();
-    expect(page.native.discoverNativeConnect).not.toHaveBeenCalled();
-    expect(page.activateClient).not.toHaveBeenCalled();
-    page.window.dispatchEvent(new Event("focus"));
-    page.document.dispatchEvent(new Event("visibilitychange"));
-    await settle();
-    expect(page.native.discoverNativeConnect).toHaveBeenCalledOnce();
-    expect(page.setState).toHaveBeenLastCalledWith("approval");
-    expect(page.window.open).not.toHaveBeenCalled();
-    await page.connect();
-    expect(page.window.open).toHaveBeenCalledWith(approval, "_blank");
-    page.message();
-    await settle();
-    expect(page.native.discoverNativeHealth).toHaveBeenCalledTimes(2);
-    expect(page.activateClient).toHaveBeenCalledOnce();
-    page.cleanup();
-  });
-
-  it("cancels a cold wake without reviving discovery after a late App return", async () => {
-    const page = mount(false, "idle", true);
-    await page.connect(true);
-    page.pending.current!.cancel!();
-    page.window.dispatchEvent(new Event("focus"));
-    page.document.dispatchEvent(new Event("visibilitychange"));
-    await settle();
-    expect(page.native.discoverNativeConnect).not.toHaveBeenCalled();
-    expect(page.window.open).not.toHaveBeenCalled();
-    expect(page.activateClient).not.toHaveBeenCalled();
     expect(page.pending.current).toBeNull();
     page.cleanup();
   });
@@ -211,7 +174,12 @@ describe("App connection approval", () => {
     expect(page.setState).toHaveBeenLastCalledWith("ready");
     expect(page.setState).not.toHaveBeenCalledWith("approval");
     await page.connect();
-    expect(page.window.open).toHaveBeenCalledWith("http://127.0.0.1:39721/client", "_blank");
+    // The launcher learns which site opened it, so it can offer a way back
+    // instead of the steps the Site already took.
+    expect(page.window.open).toHaveBeenCalledWith(
+      "http://127.0.0.1:39721/client?from=https%3A%2F%2Fsite.example",
+      "_blank",
+    );
     expect(page.setState).toHaveBeenLastCalledWith("ready");
     expect(page.pending.current).toBeNull();
     expect(page.activateClient).not.toHaveBeenCalled();

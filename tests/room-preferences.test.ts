@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { readRoomPreferences, saveRoomPreferences } from "../src/client/lib/room-preferences";
-import { RoomInteractionSession } from "../src/client/lib/room-interactions";
+import { readRoomPreferences, saveRoomPreferences } from "../src/client/lib/room/preferences";
+import { RoomInteractionSession } from "../src/client/lib/room/interactions";
 
 afterEach(() => vi.unstubAllGlobals());
 

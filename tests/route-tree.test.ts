@@ -2,11 +2,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { RouteTree } from "../src/client/components/living/RouteTree.tsx";
-import { Couch } from "../src/client/components/living/Couch.tsx";
-import { participantColor } from "../src/client/components/living/participant-color.ts";
-import { topologyLayoutForWidth } from "../src/client/components/living/route-tree-layout.ts";
-import { labelParticipantSnapshot } from "../src/client/lib/viewer-presence.ts";
+import { RouteTree } from "../src/client/ui/components/people/RouteTree.tsx";
+import { Couch } from "../src/client/ui/components/people/Couch.tsx";
+import { participantColor } from "../src/client/ui/components/people/participant-color.ts";
+import { topologyLayoutForWidth } from "../src/client/ui/components/people/route-tree-layout.ts";
+import { labelParticipantSnapshot } from "../src/client/lib/room/viewer-presence.ts";
 import { setCopy } from "../src/client/ui/copy.ts";
 import { deriveParticipantStatus } from "../src/client/ui/media-status";
 

@@ -4,7 +4,7 @@ import { debugError } from "../lib/debug";
 import { BrowserVoiceEndpoint } from "./browser-endpoint";
 import { MicrophoneInput } from "../media/microphone-input";
 import { browserCaptureDevices } from "../media/capture-devices";
-import { readRoomPreferences, saveRoomPreferences, type RoomPreferences } from "../lib/room-preferences";
+import { readRoomPreferences, saveRoomPreferences, type RoomPreferences } from "../lib/room/preferences";
 
 export type RoomVoiceError = "microphoneUnavailable" | "microphoneDenied" | "microphoneMissing" | "microphoneFailed" | "transport" | "rejected" | "closed";
 export interface RoomVoiceSnapshot {
@@ -40,8 +40,7 @@ export class RoomVoiceSession {
   private closed = false;
   private epoch = 0;
 
-  constructor(private readonly send: (message: ClientMessage) => boolean, iceConfig: IceConfig,
-    private readonly listeningPresence = false, private readonly bitrate = false) {
+  constructor(private readonly send: (message: ClientMessage) => boolean, iceConfig: IceConfig) {
     this.endpoint = new BrowserVoiceEndpoint(iceConfig, message => this.state.connected && this.send(message), () => {
       this.refresh(); this.schedule();
     });
@@ -63,10 +62,6 @@ export class RoomVoiceSession {
       ...(this.state.error === "transport" && !this.state.room?.unavailable.length && this.endpoint.connected ? { error: null } : {}) });
   }
   updateIceConfig(config: IceConfig): void { this.endpoint.updateIceConfig(config); }
-  subscribeRoom(): void {
-    this.send({ type: "subscribe-room-voice", ...(this.listeningPresence ? { deafened: this.state.deafened } : {}),
-      ...(this.bitrate ? { bitrate: true as const } : {}) });
-  }
   authenticated(peerId: string, role: "host" | "viewer"): void {
     if (this.closed) return;
     this.disconnected();
@@ -211,7 +206,7 @@ export class RoomVoiceSession {
   muteVoice(peerId: string): void { this.endpoint.mute(peerId, !this.endpoint.muted.has(peerId)); this.refresh(); }
   deafen(deafened: boolean): void {
     this.endpoint.deafen(deafened);
-    if (this.listeningPresence && this.state.connected) this.send({ type: "room-voice-command", command: { action: "deafen", deafened } });
+    if (this.state.connected) this.send({ type: "room-voice-command", command: { action: "deafen", deafened } });
     if (!deafened) this.resumeAudio();
     this.refresh();
   }

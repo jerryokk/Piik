@@ -21,7 +21,11 @@ async function runtime(delay: number) {
       setTimeout(() => {
         response.setHeader("Content-Type", "application/json");
         response.end(JSON.stringify({ protocol: NATIVE_CLIENT_PROTOCOL, service: "piik-client",
-          port, instanceToken: "a".repeat(43), nativeMedia: { video: true },
+          port, instanceToken: "a".repeat(43),
+          nativeMedia: {
+            video: true, receiverReuse: false, remoteCoPlay: false, shareVolume: false,
+            sourceCancellation: false, captureFailureDetails: false, captureBorderControl: false,
+          },
           ...(request.url === "/connect-discovery" ? { connectURL: `http://127.0.0.1:${port}/client` } : {}),
         }));
       }, delay);

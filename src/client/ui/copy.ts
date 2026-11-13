@@ -12,7 +12,6 @@ import {
 } from "../locales";
 
 export type { CopyKey, Lang, TitleFrameKey } from "../locales";
-export type CopyMode = "text" | "vis";
 
 const LANG_STORAGE_KEY = "piik:ui-lang";
 const MODE_STORAGE_KEY = "piik:ui-mode";

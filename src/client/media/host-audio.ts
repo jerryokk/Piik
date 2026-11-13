@@ -1,9 +1,8 @@
 import type { BrowserCaptureSource } from "./quality";
 import { audioInputConstraints } from "./audio-capture";
 import { MicrophoneInput } from "./microphone-input";
-import { acquireMediaStream } from "./capture-stream";
 
-export interface CommentaryInput { deviceId: string; volume: number; voiceProcessing: boolean }
+interface CommentaryInput { deviceId: string; volume: number; voiceProcessing: boolean }
 
 // The Host owns video. This owner mixes source sound and optional commentary
 // into one stable output, independently of playback and room voice.
@@ -15,7 +14,7 @@ export class HostAudio {
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   private microphone: MicrophoneInput | null = null;
   private microphoneNode: MediaStreamAudioSourceNode | null = null;
-  private microphoneRequest: AbortController | null = null;
+  private microphoneRequest = 0;
   private closed = false;
   constructor(private source: MediaStream, private kind: BrowserCaptureSource = "browser",
     private availabilityChanged: (available: boolean) => void = () => {},
@@ -64,22 +63,21 @@ export class HostAudio {
     }
   }
   async setMicrophone(enabled: boolean, settings: CommentaryInput): Promise<void> {
-    this.microphoneRequest?.abort();
-    this.microphoneRequest = null;
+    const request = ++this.microphoneRequest;
     if (!enabled) { this.clearMicrophone(); return; }
     if (!this.context || !this.destination || this.closed) throw new Error("Shared audio is unavailable");
-    const request = this.microphoneRequest = new AbortController();
     const context = new AudioContext();
     let stream: MediaStream | undefined, input: MicrophoneInput | undefined;
     try {
-      const resumed = Promise.all([context.resume(), this.context.resume()]).then(() => true, () => false);
-      stream = await acquireMediaStream(() => navigator.mediaDevices.getUserMedia({ audio: { ...audioInputConstraints(settings.voiceProcessing),
-        ...(settings.deviceId ? { deviceId: { exact: settings.deviceId } } : {}) }, video: false }), request.signal);
+      const resumed = context.resume().then(() => true, () => false);
+      await this.context.resume();
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { ...audioInputConstraints(settings.voiceProcessing),
+        ...(settings.deviceId ? { deviceId: { exact: settings.deviceId } } : {}) }, video: false });
       if (!await resumed) throw new Error("Microphone audio could not start");
-      request.signal.throwIfAborted();
+      if (this.closed || request !== this.microphoneRequest) return;
       if (!stream.getAudioTracks().some(track => track.readyState === "live")) throw new Error("No live microphone");
       input = new MicrophoneInput(stream, context, settings.volume, () => {
-        if (this.microphone === input) { this.microphoneRequest?.abort(); this.clearMicrophone(); }
+        if (this.microphone === input) { ++this.microphoneRequest; this.clearMicrophone(); }
       });
       const node = this.context.createMediaStreamSource(input.stream);
       node.connect(this.gain!);
@@ -89,10 +87,8 @@ export class HostAudio {
       previousNode?.disconnect(); previousInput?.close();
       this.microphoneChanged(true); this.reportAvailability();
     } catch (error) {
-      input?.close();
-      if (!request.signal.aborted) throw error;
+      input?.close(); throw error;
     } finally {
-      if (this.microphoneRequest === request) this.microphoneRequest = null;
       if (!input) { stream?.getTracks().forEach(track => track.stop()); void context.close().catch(() => {}); }
     }
   }
@@ -123,7 +119,7 @@ export class HostAudio {
   }
   dispose(): void {
     if (this.closed) return;
-    this.closed = true; this.microphoneRequest?.abort(); this.microphoneRequest = null;
+    this.closed = true; ++this.microphoneRequest;
     this.unwatchSource();
     this.clearMicrophone(); this.closeGraph();
     this.source.getAudioTracks().forEach(track => track.stop());

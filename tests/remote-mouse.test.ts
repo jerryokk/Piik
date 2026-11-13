@@ -9,7 +9,7 @@ import { REMOTE_TOUCH_HOLD_MS } from "../src/client/remote-control/touchpad";
 // Exercise the actual component callbacks without adding a DOM runtime. Native
 // click generation and pointer capture ordering still require Browser acceptance.
 const source = ts.createSourceFile("RemoteMouse.tsx", readFileSync(
-  new URL("../src/client/components/living/RemoteMouse.tsx", import.meta.url), "utf8",
+  new URL("../src/client/ui/components/control/RemoteMouse.tsx", import.meta.url), "utf8",
 ), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const component = source.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "RemoteMouse");
 if (!component) throw new Error("Missing remote mouse owner");

@@ -1,0 +1,169 @@
+/* ---------- topology tree ---------- */
+
+.lr-route {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 100%;
+  overflow-x: hidden;
+  padding: 6px 2px;
+  box-sizing: border-box;
+}
+.lr-route > svg { display: block; width: 100%; max-width: 880px; height: auto; margin: 0 auto; }
+.lr-route-idle { margin: 2px 0 8px; color: var(--muted); font-size: 12px; text-align: center; }
+.lr-route:focus-visible { border-radius: 12px; outline-color: var(--ink); }
+.lr-route-edge {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.lr-route-edge.is-p2p { stroke: var(--route-p2p); }
+.lr-route-edge.is-sfu { stroke: var(--route-sfu); }
+.lr-route-edge.is-pending {
+  stroke: var(--route-pending);
+  stroke-dasharray: 6 7;
+  animation: lr-flow 1.1s linear infinite;
+}
+.lr-route-node {
+  transition: opacity 180ms ease;
+}
+.lr-route-node.is-pending { opacity: .58; }
+.lr-route-hover,
+.lr-route-selection,
+.lr-route-you { fill: none; vector-effect: non-scaling-stroke; }
+.lr-route-hover { stroke: var(--ink); stroke-width: 2; }
+.lr-route-selection { stroke: var(--ink); stroke-width: 3; }
+.lr-route-you { stroke: var(--you); stroke-width: 2.5; stroke-dasharray: 4 3; }
+.lr-route-sfu { fill: none; stroke: var(--route-sfu); stroke-width: 2.5; }
+.lr-route-sfu path { stroke-linecap: round; }
+.lr-route-label {
+  fill: var(--ink);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  opacity: .78;
+  paint-order: stroke;
+  stroke: var(--wall-2);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.lr-route-label.is-host { font-weight: 800; opacity: 1; }
+.lr-route-label.is-sfu { fill: var(--route-sfu); font-weight: 800; opacity: 1; }
+.lr-route-label.is-pending { fill: var(--route-pending); color: var(--route-pending); opacity: 1; }
+.lr-route-label.is-hovered { opacity: 1; }
+.lr-route-label.is-selected { font-weight: 800; opacity: 1; }
+.lr-route-hit {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.lr-route-name-target { overflow: visible; }
+.lr-route-name-hint,
+.lr-route-hit,
+.lr-route-name-static { position: relative; display: block; width: 100%; height: 100%; }
+.lr-route-name { position: absolute; display: block; line-height: 14px; text-align: center; transform: translateX(-50%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lr-route.is-outline .lr-route-name { text-align: left; transform: none; }
+.lr-route-name-hint:focus-visible { outline: 2px solid var(--ink); border-radius: var(--radius-sm); }
+.lr-route-hit:hover,
+.lr-route-hit:focus,
+.lr-route-hit:focus-visible {
+  outline: none;
+}
+@keyframes lr-flow { to { stroke-dashoffset: -24; } }
+
+/* Dense Host overview: one aligned row per Viewer, not a card wall. */
+.lr-viewer-overview {
+  width: 100%;
+  min-width: 0;
+}
+.lr-viewer-overview-scroll {
+  overflow-x: auto;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper);
+  scrollbar-color: var(--route-sfu) transparent;
+  scrollbar-width: thin;
+}
+.lr-viewer-overview-head,
+.lr-viewer-overview-row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+.lr-viewer-overview.has-picture :is(.lr-viewer-overview-head, .lr-viewer-overview-row) { min-width: 820px; grid-template-columns: minmax(170px, 1.5fr) 76px 116px 78px 98px 88px 76px; }
+.lr-viewer-overview.has-voice:not(.has-picture) :is(.lr-viewer-overview-head, .lr-viewer-overview-row) { min-width: 720px; grid-template-columns: minmax(170px, 1.5fr) 132px 90px 78px 90px 76px; }
+.lr-viewer-overview.has-picture.has-voice :is(.lr-viewer-overview-head, .lr-viewer-overview-row) { min-width: 970px; grid-template-columns: minmax(170px, 1.5fr) 76px 116px 78px 98px 88px 76px 140px; }
+.lr-viewer-overview-voice { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.lr-viewer-overview-voice > span { display: grid; gap: 3px; text-align: start; }
+.lr-viewer-overview-voice small { font-size: 11px; }
+.lr-viewer-overview-voice[data-tone="busy"] { color: var(--route-pending); }
+.lr-viewer-overview-voice[data-tone="warn"] { color: var(--warn); }
+.lr-viewer-overview-voice[data-tone="bad"] { color: var(--danger); }
+.lr-viewer-overview-head {
+  color: var(--muted);
+  background: var(--wall-2);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.lr-viewer-overview-head > span:not(:first-child),
+.lr-viewer-overview-row > span:not(:first-child) { text-align: center; }
+.lr-viewer-overview-row {
+  width: 100%;
+  border: 0;
+  border-top: 1.5px solid var(--wall-2);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  transition: var(--tint-motion);
+}
+.lr-viewer-overview-row:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.lr-viewer-overview-row.is-selected { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.lr-viewer-overview-row:focus-visible { outline: 3px solid var(--action); outline-offset: -3px; }
+.lr-viewer-overview-person {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+.lr-viewer-overview-person-copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.15;
+  text-align: left;
+}
+.lr-viewer-overview-person-copy > b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lr-viewer-overview-person-copy > small { font-size: 11px; font-weight: 600; opacity: .58; }
+.lr-viewer-overview-pawn { position: relative; flex: 0 0 auto; }
+.lr-viewer-overview-pawn svg { display: block; width: 24px; height: 29px; }
+.lr-viewer-overview-pawn i {
+  top: 0;
+  left: auto;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--paper);
+}
+.lr-viewer-overview-route {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.lr-viewer-overview-route.is-p2p { color: var(--route-p2p); }
+.lr-viewer-overview-route.is-sfu { color: var(--route-sfu); }
+.lr-viewer-overview-route.is-pending { color: var(--route-pending); }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_QUALITY_SETTINGS } from "../src/shared/protocol";
-import { AppQualityPreference } from "../src/client/native/quality-preference";
+import { AppQualityPreference } from "../src/client/native/app-quality-preference";
 import { discoverNativeHealth } from "../src/client/native/client";
 import { nativeHealthSchema, NATIVE_CLIENT_PROTOCOL } from "../src/client/native/wire";
 import { NATIVE_CLIENT_PORT_START } from "../src/client/native/discovery-ports";
@@ -10,7 +10,10 @@ afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(
 
 const health = nativeHealthSchema.parse({
   protocol: NATIVE_CLIENT_PROTOCOL, service: "piik-client", port: NATIVE_CLIENT_PORT_START,
-  instanceToken: "a".repeat(43), qualityPreference: true,
+  instanceToken: "a".repeat(43), nativeMedia: {
+    receiverReuse: true, remoteCoPlay: true, shareVolume: true,
+    sourceCancellation: true, captureFailureDetails: true, captureBorderControl: false,
+  },
 });
 
 describe("App quality preference transport", () => {
@@ -56,16 +59,13 @@ describe("App quality preference transport", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it("leaves older Apps alone and does not discover after retirement", async () => {
+  it("does not discover after retirement", async () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
     const controller = new AbortController();
-    vi.mocked(discoverNativeHealth).mockResolvedValue({ ...health, qualityPreference: undefined });
-    expect(await AppQualityPreference.connect(controller.signal)).toBeNull();
     controller.abort();
     expect(await AppQualityPreference.connect(controller.signal)).toBeNull();
-    expect(discoverNativeHealth).toHaveBeenCalledOnce();
-    expect(discoverNativeHealth).toHaveBeenCalledWith({ signal: controller.signal, waitForPermission: false });
+    expect(discoverNativeHealth).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 

@@ -100,6 +100,7 @@ const PATHS = {
   zap: { body: (<><path pathLength={1} d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></>) },
   cast: { body: (<><path pathLength={1} d="M4 16a4 4 0 0 1 4 4M4 12a8 8 0 0 1 8 8"/><circle pathLength={1} cx="4" cy="20" r="1.2" fill="currentColor" stroke="none"/><path pathLength={1} d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></>) },
   sun: { body: (<><circle pathLength={1} cx="12" cy="12" r="4"/><path pathLength={1} d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></>) },
+  grid: { body: (<><rect pathLength={1} x="3" y="3" width="7" height="7" rx="1.5"/><rect pathLength={1} x="14" y="3" width="7" height="7" rx="1.5"/><rect pathLength={1} x="3" y="14" width="7" height="7" rx="1.5"/><path pathLength={1} d="M14 14h3v3h-3zm7 0v7h-7v-3"/></>) },
 } satisfies Record<string, { body: ReactNode; solid?: boolean }>;
 
 export type GlyphName = keyof typeof PATHS;

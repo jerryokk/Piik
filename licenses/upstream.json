@@ -1,9 +1,4 @@
 {
-  "libc++@ndk-30.0.16248370": {
-    "file": "libcxx-ndk-30.txt",
-    "source": "https://github.com/llvm/llvm-project/blob/2d287f51eff2a5fbf84458a33f7fb2493cf67965/libcxx/LICENSE.TXT",
-    "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b"
-  },
   "webrtc@m152.7977.0.2": {
     "file": "webrtc-m152.7977.0.2.txt",
     "source": "https://github.com/shiguredo-webrtc-build/webrtc-build/releases/tag/m152.7977.0.2",
@@ -18,5 +13,50 @@
     "file": "cloudflared-2026.10.3.txt",
     "source": "https://github.com/cloudflare/cloudflared/tree/de6376c5af4a67cbc65258682e5a01781827643d",
     "sha256": "86d91fce84e045818cd3e4e95aba68d32274ed42b9eb1fe88612e12d9e7e1ce1"
+  },
+  "str0m-proto@0.8.0": {
+    "file": "str0m-mit-5f2183c.txt",
+    "source": "https://raw.githubusercontent.com/algesten/str0m/5f2183ce7c67117cd1960dfeb11bed11fc188b66/LICENSE-MIT.txt",
+    "sha256": "5b460f37be48ac4cf2181596181cc6cae432fc2caae05944873f380730829a4b"
+  },
+  "str0m-aws-lc-rs@0.7.0": {
+    "file": "str0m-mit-5f2183c.txt",
+    "source": "https://raw.githubusercontent.com/algesten/str0m/5f2183ce7c67117cd1960dfeb11bed11fc188b66/LICENSE-MIT.txt",
+    "sha256": "5b460f37be48ac4cf2181596181cc6cae432fc2caae05944873f380730829a4b"
+  },
+  "is@0.12.0": {
+    "file": "str0m-mit-5f2183c.txt",
+    "source": "https://raw.githubusercontent.com/algesten/str0m/5f2183ce7c67117cd1960dfeb11bed11fc188b66/LICENSE-MIT.txt",
+    "sha256": "5b460f37be48ac4cf2181596181cc6cae432fc2caae05944873f380730829a4b"
+  },
+  "webview2-com@0.39.1": {
+    "file": "webview2-rs-edc2caf.txt",
+    "source": "https://raw.githubusercontent.com/wravery/webview2-rs/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE",
+    "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73"
+  },
+  "webview2-com-sys@0.39.1": {
+    "file": "webview2-rs-edc2caf.txt",
+    "source": "https://raw.githubusercontent.com/wravery/webview2-rs/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE",
+    "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73"
+  },
+  "selectors@0.38.0": {
+    "file": "mpl-2.0.txt",
+    "source": "https://www.mozilla.org/media/MPL/2.0/index.txt (servo/stylo 572ecba2d1600e7c3d490586692a209faf703baa ships no license file)",
+    "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04"
+  },
+  "crab_nat@0.8.1": {
+    "file": "mit-spdx-3.27.0.txt",
+    "source": "https://raw.githubusercontent.com/spdx/license-list-data/v3.27.0/text/MIT.txt (ryco117/crab_nat 296cc168bb0805fe64b9378d0cc76a833e903ce0 declares MIT, copyright Ryan Andersen, and ships no license file)",
+    "sha256": "b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5"
+  },
+  "alloc-stdlib@0.3.0": {
+    "file": "rust-alloc-no-stdlib-0a81fd6.txt",
+    "source": "https://raw.githubusercontent.com/dropbox/rust-alloc-no-stdlib/0a81fd6928ea3b33c8cd484aa4575d50ffb98012/LICENSE",
+    "sha256": "c0c56f26d9c051cac4d200c34c84e7ae9aaa853e01a982a1df08b09931e518ae"
+  },
+  "qrcode-generator@2.0.4": {
+    "file": "qrcode-generator-2.0.4.txt",
+    "source": "https://raw.githubusercontent.com/kazuhikoarase/qrcode-generator/master/LICENSE",
+    "sha256": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c"
   }
 }

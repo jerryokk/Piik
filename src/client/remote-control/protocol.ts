@@ -12,8 +12,7 @@ export function matchesRemoteShortcut(event: Pick<KeyboardEvent, "code" | "ctrlK
 
 export const remoteControlModeSchema = z.enum(["off", "ask", "room", "password"]);
 export type RemoteControlMode = z.infer<typeof remoteControlModeSchema>;
-export const remoteInputPlatformSchema = z.enum(["windows", "darwin", "linux"]);
-export type RemoteInputPlatform = z.infer<typeof remoteInputPlatformSchema>;
+export const remoteInputPlatformSchema = z.enum(["windows"]);
 
 export const remoteInputStateSchema = z.object({
   state: z.enum(["ready", "unavailable", "pending", "active", "suspended", "failed"]),
@@ -22,18 +21,23 @@ export const remoteInputStateSchema = z.object({
   grant: z.string().regex(/^[0-9a-f]{64}$/).optional(),
   intent: z.string().regex(/^[0-9a-f]{32}$/).optional(),
   reason: z.enum(["password", "retry", "busy", "gamepad"]).optional(),
-  capabilities: z.array(z.string().min(1).max(32)).max(16).optional(),
-  coPlay: z.boolean().optional(),
+  // Facts for this source and grant; every App of the current build sends them.
+  capabilities: z.array(z.string().min(1).max(32)).max(16),
+  coPlay: z.boolean(),
   inputFailed: z.boolean().optional(),
+  /** Free controller slots on the Host, shared with its own pads. */
+  gamepadRoom: z.number().int().min(0).max(4).optional(),
+  /** Browser gamepad indices the Host refused for lack of a slot. */
+  gamepadFailed: z.array(z.number().int().min(0).max(255)).max(256).optional(),
 }).strict();
 export type RemoteInputState = z.infer<typeof remoteInputStateSchema>;
 
 export function remoteTextAvailable(state: RemoteInputState): boolean {
-  return !state.coPlay || state.capabilities?.includes("text") === true;
+  return state.capabilities.includes("text");
 }
 
 export function remoteGamepadAvailable(state: RemoteInputState): boolean {
-  return state.coPlay === true && state.capabilities?.includes("gamepad") === true;
+  return state.coPlay && state.capabilities.includes("gamepad");
 }
 
 // Button bits follow W3C standard indices; sticks are signed 16-bit, Y down,

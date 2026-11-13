@@ -1,0 +1,31 @@
+[package]
+name = "piik-native-control"
+description = "The loopback v10 control session, media traits and capture-source protocol."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+base64.workspace = true
+futures-util.workspace = true
+hex.workspace = true
+piik-diagnostics.workspace = true
+piik-loopback.workspace = true
+piik-native-audio.workspace = true
+piik-native-capture.workspace = true
+piik-protocol.workspace = true
+piik-remote-input.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+tokio-tungstenite.workspace = true
+
+[lints]
+workspace = true

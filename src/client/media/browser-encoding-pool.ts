@@ -1,4 +1,4 @@
-import { createOpaqueId } from "../lib/opaque-id";
+import { createOpaqueId } from "../lib/util/opaque-id";
 import { browserDebugEnabled, debugError, debugEvent } from "../lib/debug";
 import { EMPTY_METRICS, type ConnectionMetrics } from "../types";
 import { captureMetrics, collectConnectionMetricsFromReport, createStatsAccumulator } from "../webrtc/stats";

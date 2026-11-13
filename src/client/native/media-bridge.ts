@@ -1,7 +1,7 @@
 import type { SignalPayload } from "../../shared/protocol";
-import { createOpaqueId } from "../lib/opaque-id";
+import { createOpaqueId } from "../lib/util/opaque-id";
 import { browserDebugEnabled, debugError, debugEvent } from "../lib/debug";
-import { observeDebugConnection } from "../lib/debug-webrtc";
+import { observeDebugConnection } from "../lib/debug/webrtc";
 import type { ConnectionMetrics } from "../types";
 import { preferScreenAudioStereo } from "../webrtc/opus-receive-sdp";
 import { requireReceivingVideo } from "../webrtc/video-codec";
@@ -97,7 +97,6 @@ export class NativeMediaBridge {
     this.peer.addEventListener("track", (event) => {
       if (this.disposed) return;
       if (!this.stream.getTracks().includes(event.track)) this.stream.addTrack(event.track);
-      if (event.track.kind === "video") event.track.addEventListener("ended", () => this.fail("track-ended"), { once: true });
       this.completeNegotiation?.();
     });
     this.peer.addEventListener("connectionstatechange", () => {

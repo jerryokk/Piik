@@ -1,4 +1,4 @@
-export interface VideoCodecEvidence {
+interface VideoCodecEvidence {
   codec: string | null;
   profile: string | null;
   parameters: string | null;

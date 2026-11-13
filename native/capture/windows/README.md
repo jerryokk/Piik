@@ -13,8 +13,8 @@ its PID and process creation time, and has independent modes for:
   over the local control connection rather than the media route.
 
 The video command receives the current product resolution, frame-rate, bitrate,
-and quality preference. A replacement process applies live changes while the Go
-session retains its Pion source and connections.
+and quality preference. A replacement process applies live changes while the Rust
+session retains its media source and connections.
 
 Sharing and source previews request borderless access by default when Windows
 exposes `IsBorderRequired` and `GraphicsCaptureAccess` (build 20348+, including
@@ -34,7 +34,8 @@ activation rather than inferred from a Windows build number; display sources
 normally use the standard render-device loopback available on Windows 10 and
 later. The optional `--capture-audio exclude <pid> <creation-time>` mode requires
 a successful exclusion-mode probe, without an additional OS-version gate. Windows 10 isolation still
-needs physical verification; see the [audio evidence](../../../docs/research/native-client-media.md#windows-audio-exclusion).
+needs physical verification; [verification status](../../../docs/verification-status.md)
+records that boundary.
 It captures all output devices
 except the selected process tree, and retires when that process exits. The
 [screen-audio contract](../../../docs/standards/media-quality.md#screen-audio)
@@ -48,7 +49,7 @@ NV12 surface through one staging texture and uses the same encoded-frame
 boundary. The process has no network fallback. The App
 consumes the selected process or system-audio stream through its native media
 edge when the capability probe reports support. Build to the stable project
-`build/go-check` directory for a bounded capability run:
+`build/rust-check` directory for a bounded capability run:
 
 ```powershell
 npm run check:native
@@ -68,7 +69,7 @@ This sends synthetic RGB, full/limited-range BT.601/BT.709 NV12 and FP16 HDR bar
 through the production converters. It checks range/matrix, highlight detail,
 SDR/HDR replacement, white-level changes and retained-frame ownership without
 capturing the desktop. Decoded H.264/VP8, Browser reception and real HDR displays
-remain separate media acceptance; [fidelity research](../../../docs/research/media-fidelity.md)
+remain separate media acceptance; [verification status](../../../docs/verification-status.md)
 records current evidence and limits.
 
 The implementation follows Microsoft's MIT-licensed reference samples and

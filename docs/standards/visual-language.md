@@ -15,10 +15,8 @@ English and pure-visual modes, in both themes and at narrow widths.
 Piik's living room uses simple silhouettes, generous space, rounded controls
 and a small responsive bounce. Clear hierarchy and legible interaction keep
 the playful details easy to use.
-The [copy guide](./naming.md#voice-and-terminology) owns its voice.
-The [public introduction guide](./public-introduction.md) owns website and film
-hierarchy: shared identity, current product demonstrations and promotional
-composition. It applies the copy guide's audience and technical-detail layers.
+The [copy guide](./naming.md#voice-and-terminology) owns its voice and its
+audience and technical-detail layers.
 
 Keep playfulness restrained: clean silhouettes, balanced proportions, quiet
 expressions and brief gestures. Keep the interface approachable; avoid
@@ -65,35 +63,6 @@ overflow clipping is not evidence that the content fits.
 Keep existing controls in their established positions as a room becomes active.
 Represent missing room identity with a passive placeholder in its own slot;
 do not move unrelated controls into that space to fill an empty state.
-
-### Space Priority
-
-Assign space by meaning before choosing a breakpoint. The containing row or
-toolbar owns its layout; the shared control declares whether its caption may
-collapse. Primary styling, a quiet appearance or a particular icon does not
-determine that priority.
-
-| Content or action | Behavior when space is limited |
-| --- | --- |
-| A name, selected device or other object being acted on | Give the value space before its supporting action's caption. After that, keep the group together where possible; long names may use the full available line and then ellipsis with their existing full-value hint. |
-| Exact short values, units, entry fields and validation | Keep the value and unit together; preserve usable editing width. Wrap the field group or explanation instead of clipping the value or shrinking its type. |
-| Contextual actions with a familiar icon, such as Edit or Copy | Explicitly allow the caption to collapse first. Retain the same icon, accessible name, hint and normal click target. |
-| Primary, destructive or unfamiliar choices | Keep enough visible identity to distinguish the action and its scope; retain wording when an icon would be ambiguous. Wrap complete actions or their group. |
-| Secondary utilities and detail settings | Reuse the surface's existing More/settings disclosure when needed. Keep frequent playback, mute and stop/release controls directly reachable. |
-
-Use this order: remove surplus spacing, collapse eligible supporting captions,
-reflow coherent groups, then shorten long descriptive values. Do not reduce all
-children equally or use blanket `nowrap` to force a row to fit. For example,
-the nickname gets space before the word **Edit**; the pencil remains beside it
-until the whole identity group needs its own line.
-
-`Btn` owns optional caption collapse and button geometry. Layout owners select
-the applicable container state; they must not copy per-page glyph sizes or hide
-all captions indiscriminately. Header overflow remains its existing single
-disclosure and focus owner. The website and room UI follow these same priorities
-while keeping their distinct layouts. Check real short/long values, translated
-labels, active/editing states and text zoom; fitting inside the viewport alone
-does not prove the important content stayed readable.
 
 ### Control Selection
 
@@ -410,11 +379,9 @@ Inline brand
 marks keep the same wink identity and outline. Their standard gesture keeps the
 body and feet still: the face appears with both eyes open, followed by a short
 antenna sway, wink, then two gold sparks. The
-[shared brand animation](../../src/client/components/living/brand-mark.css)
-owns timing, sparkle origins and trajectories for the product, website and
-film closing card; looping presentations leave a quiet interval between gestures.
-Reduced motion shows the static wink. A held film ending continues the complete
-shared gesture, while the wordmark and address remain still.
+[shared brand animation](../../src/client/ui/styles/brand-mark.css)
+owns timing, sparkle origins and trajectories; looping presentations leave a
+quiet interval between gestures. Reduced motion shows the static wink.
 Their stroke inherits the local surface's text colour:
 dark ink on light surfaces, light ink on dark surfaces, including deliberately
 light panels within a dark page. Gold sparkles remain a brand accent in both
@@ -489,7 +456,7 @@ The crown retains a bright gold fill with a dark gold edge.
 Figures and exterior upholstery use flat fills without outline strokes.
 Use differences in tone, spacing and name tags to keep people readable; retain
 only the few interior seams that clarify cushions. Apply this convention to
-the website and README cast as well as the product UI.
+the README cast as well as the product UI.
 
 ## Symbol Reference
 
@@ -535,7 +502,7 @@ type checking rather than silently render a warning triangle.
 | Theme / 主题 | `sun`, `moon` | Light/dark appearance in theme controls. A moon in an idle-room scene means rest, with the idle scene providing that context. |
 | Welcome decoration / 开场装饰 | `gamepad`, `popcorn`, `clapperboard`, `trophy`, `gift`, `flag`, `heart`, `bulb`, `zap` | Games, snacks, film, achievement, gift, next stop, affection, discovery and energy. These may decorate the welcome line, never a measured speed, failure or connection verdict. |
 
-Metrics use [METRIC_PRESENTATION](../../src/client/components/living/metric-presentation.ts)
+Metrics use [METRIC_PRESENTATION](../../src/client/ui/components/people/metric-presentation.ts)
 in both summaries and details. Labels, units and stage-specific comics distinguish
 related values; views do not choose their own symbols.
 
@@ -561,13 +528,13 @@ Text-only surfaces retain the same meanings:
 | --- | --- |
 | Activity in document titles | [Title catalogs](../../src/client/locales/visual.ts): 📺 sharing/viewing, 🛋️ ready room, 💤 idle, ⏳ waiting/starting, ⏸️ paused, ▶️ waiting for playback, ⏹️ ended, ❗ unavailable. Secondary decorations cannot replace this leading meaning or imply new progress. |
 | A problem beside an activity | [Media status](../../src/client/ui/media-status.ts) supplies ⚠️ from actual facts; [document-title](../../src/client/ui/document-title.ts) only composes and rotates titles. |
-| Default names | [display-name](../../src/client/lib/display-name.ts) owns 📺 for the sharing source and 👤 for a Viewer in visual mode. Preserve user-entered emoji names as data; never infer role from their characters. [viewer-presence](../../src/client/lib/viewer-presence.ts) owns duplicate-name suffixes. |
+| Default names | [display-name](../../src/client/lib/room/display-name.ts) owns 📺 for the sharing source and 👤 for a Viewer in visual mode. Preserve user-entered emoji names as data; never infer role from their characters. [viewer-presence](../../src/client/lib/room/viewer-presence.ts) owns duplicate-name suffixes. |
 | Visual-mode shortcut | ✦ in the language control and its documentation; not a success or quality mark. |
 | Input placeholders | Four slots represent the four-digit room code. Password dots mask a field; their illustrated count imposes no password length. Numeric samples reuse the actual field's `--mono` typeface and weight. Real inputs retain localized labels. |
 | Unknown values | `—` means unavailable/unknown, never zero or a healthy result. Keep exact values and units whenever known. |
 | Capability values | `✓` / `✗` answer the adjacent boolean capability, not whether an entire route or share succeeded. |
 | Shortened text | `…` means truncation. Preserve the full nickname/URL for reading and copying; never turn an exact value into a decorative code. |
-| Welcome cipher | The locale entry owns its two meaningful symbols; [WelcomeLine](../../src/client/components/living/WelcomeLine.tsx) renders their pixel words. They are decoration, not hidden connection state. |
+| Welcome cipher | The locale entry owns its two meaningful symbols; [WelcomeLine](../../src/client/ui/components/shell/WelcomeLine.tsx) renders their pixel words. They are decoration, not hidden connection state. |
 
 ### Feedback Composition
 
@@ -613,7 +580,7 @@ React adapter provide selection, timing and visibility. Keep one secondary
 playful line in an operational page's main content, with no duplicates in
 subpanels. Review the whole composition before adding another caption.
 
-Website/App welcomes select one entry immediately and keep it during that visit.
+App and Web welcomes select one entry immediately and keep it during that visit.
 Tab titles retain one variation per actual activity, without a timer. Ordinary
 rerenders and metric updates do not draw another entry. A welcome's text/visual
 switch preserves its selected entry. Language changes use that language's pool,
@@ -644,7 +611,7 @@ review; this copy policy does not require a mascot or a new tooltip everywhere.
 
 | Existing surface | Copy coverage |
 | --- | --- |
-| Website welcome, App launcher, sharing entry | One welcome per entry; the App's visual mode renders that entry's cipher. |
+| App launcher, sharing entry | One welcome per entry; the App's visual mode renders that entry's cipher. |
 | App room startup and media waiting | One slowly rotating caption according to [feedback composition](#feedback-composition). Ordinary page loading and access checks use literal status only. |
 | Browser tab | Sharing, watching, starting, ready-to-share, not-started and waiting states may append one stable variation; room identity, literal activity and warnings remain visible. |
 | Error, pause, ended state, required action, tooltip, small control | Keep the existing literal message and contextual graphic; no rotating caption is added. |
@@ -669,7 +636,7 @@ explained clearly in two; do not invent stages to fill extra panels.
 
 ## Semantic Colour And Shape
 
-App, website and documentation use the shared surface palette in
+App, Web UI and documentation use the shared surface palette in
 `src/client/ui/palette.css`: a fresh pale canvas, warm white paper, blue-grey dark
 surfaces and clear text contrast. Source selection follows the same theme.
 Reserve green for cast identity and semantic state, not the general canvas or
@@ -686,11 +653,9 @@ Unselected hover uses `--control-hover`. Subtle surface highlights
 and shadows add depth without changing control geometry or press feedback.
 Gold upholstery, illustration and badge artwork retain their own palettes.
 
-The App terminal keeps its user's terminal background and palette. A compact
-mascot/title block identifies the App and build; state, addresses and available
-shortcut keys form separate reading levels. Use terminal-theme blue for links
-and actions, neutral rules, and the same success/wait/failure colour meanings.
-Preserve monochrome output and compact layouts without changing their behavior.
+The App has no console surface: its launcher and pages render in the App
+window under this same visual language. Gate mode's plain readiness lines are
+automation output, not a styled interface.
 
 Use the semantic theme tokens in `src/client/ui/palette.css`. Status colours
 keep their meaning independently of control selection and focus. The shared
@@ -734,7 +699,7 @@ failure; lack of PiP support is a limitation.
 ## Motion Grammar
 
 The brand mascot keeps its body still: antenna twitch, wink, then two sparkles.
-Web/App and website identity marks share `site/assets/brand-motion.css`.
+Web/App identity marks share the [brand animation](../../src/client/ui/styles/brand-mark.css).
 An entrance draws the shell once and starts the gesture only after the last
 stroke completes; loading repeats the gesture without redrawing the shell.
 Page readiness never waits for this decoration.
@@ -807,7 +772,7 @@ of connection feedback. Follow the system's reduced-motion preference, keeping a
 natural, open-eyed pose when enabled; participant gestures have no separate
 product playback control. Status comics still follow the table above.
 
-Introduction artwork is separate from product status. Website/README scenes may
+Introduction artwork is separate from product status. README scenes may
 repeat a short action with a generous pause. Keep broad movement to one or two
 focal elements; small participant gestures follow the quiet cadence above.
 Provide a pause or hide control for automatic loops, and a useful static pose
@@ -845,11 +810,6 @@ stationary and manually scrollable instead of discarding the hidden words.
   here instead of copying the palette, cast or animation table.
 
 ## Interaction References
-
-[Fluent toolbars](https://fluent2.microsoft.design/components/web/react/core/toolbar/usage)
-and [Atlassian navigation layout](https://atlassian.design/components/navigation-system/layout/code)
-distinguish directly available actions from overflow. Piik applies those priorities
-through its existing controls and layout owners, not a second toolbar framework.
 
 [Radix colour roles](https://www.radix-ui.com/colors/docs/palette-composition/understanding-the-scale)
 separate surfaces, interaction states, borders and text instead of tinting every

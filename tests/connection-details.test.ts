@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ConnectionDetails } from "../src/client/components/living/ConnectionDetails";
+import { ConnectionDetails } from "../src/client/ui/components/people/ConnectionDetails";
 import { EMPTY_METRICS } from "../src/client/types";
 
 import {
   formatPacketLossPercent,
   summarizeConnectionMetrics,
-} from "../src/client/components/connection-details.ts";
+} from "../src/client/media/connection-metrics-summary.ts";
 describe("progressive connection details", () => {
   it("formats interval packet loss without inventing unknown values", () => {
     expect(formatPacketLossPercent(1.25, "未知")).toBe("1.3%");

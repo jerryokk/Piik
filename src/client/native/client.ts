@@ -1,37 +1,16 @@
-import type { z } from "zod";
 import type { RemoteControlMode } from "../remote-control/protocol";
-import { debugError, debugEvent } from "../lib/debug";
-import { clientRuntimePort } from "../lib/session";
-import { NATIVE_CLIENT_PORT_START, NATIVE_CLIENT_PORT_END } from "./discovery-ports";
-
-import type {
-  IceConfig,
-  QualitySettings,
-  SignalPayload,
-  SfuSignalMessage,
-  PunchPrediction,
-} from "../../shared/protocol";
-import { createOpaqueId } from "../lib/opaque-id";
-import {
-  nativeCaptureTargetKey,
-  type NativeCapturePath,
-} from "./capture-selection";
+import { debugEvent } from "../lib/debug";
+import type { IceConfig, QualitySettings, SignalPayload, SfuSignalMessage, PunchPrediction } from "../../shared/protocol";
+import { nativeCaptureTargetKey, type NativeCapturePath } from "./capture-selection";
 import {
   captureOptionsResponseSchema,
   edgeOfferResponseSchema,
   nativeAckResponseSchema,
   remoteStopShortcutResponseSchema,
-  nativeEventSchema,
-  nativeDiscoveryIdentitySchema,
-  nativeConnectSchema,
-  nativeHealthSchema,
-  NATIVE_CLIENT_PROTOCOL,
   NATIVE_CLIENT_SUBPROTOCOL,
-  pongResponseSchema,
   publicationResponseSchema,
   receiveAnswerResponseSchema,
   readyResponseSchema,
-  requestFailedResponseSchema,
   shareStartedResponseSchema,
   shareSourceReplacedResponseSchema,
   shareUpdatedResponseSchema,
@@ -41,48 +20,18 @@ import {
   punchPreparedResponseSchema,
   punchCompleteResponseSchema,
   type NativeAdapter,
-  type NativeClientEvent,
-  type NativeHealth,
   type NativeCaptureTarget,
   type NativeIceCandidate,
   type NativeVideoCodec,
   type RemoteStopShortcut,
+  type NativeHealth,
 } from "./wire";
+import { discoverNativeHealth, type NativeDiscoveryOptions } from "./client-discovery";
+import { NativeClientTransport } from "./client-transport";
 
 const REQUEST_TIMEOUT_MS = 8_000;
 
-interface NativeDiscoveryOptions {
-  waitForPermission?: boolean;
-  signal?: AbortSignal;
-}
-
-export function isLoopbackPage(): boolean {
-  return ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
-}
-
-async function localPermission(): Promise<PermissionStatus | null> {
-  // App Local already runs on loopback. Its permission can say "prompt" even
-  // though loopback-to-loopback requests do not need consent.
-  if (isLoopbackPage()) return null;
-  for (const name of ["loopback-network", "local-network-access"]) {
-    try {
-      return await navigator.permissions.query({ name: name as PermissionName });
-    } catch {
-      // Older Chromium uses the combined name; other browsers may expose neither.
-    }
-  }
-  return null;
-}
-
-interface PendingRequest<T = unknown> {
-  operation: string;
-  schema: z.ZodType<T>;
-  resolve: (value: T) => void;
-  reject: (error: Error) => void;
-  timer: number | null;
-}
-
-export interface NativeShareInput {
+interface NativeShareInput {
   shareId: string;
   source: NativeCaptureTarget;
   audio: boolean;
@@ -95,153 +44,15 @@ export interface NativeShareInput {
   codec: NativeVideoCodec | "auto";
 }
 
-export class NativeCompatibilityError extends Error {
-  constructor(readonly actualProtocol: number) {
-    super(`Piik App control protocol ${actualProtocol} is incompatible with ${NATIVE_CLIENT_PROTOCOL}`);
-    this.name = "NativeCompatibilityError";
-  }
-}
-
-/** The control boundary knows the failed operation, not the driver's cause. */
-export class NativeRequestError extends Error {
-  constructor(
-    readonly reason: "unavailable" | "timeout" | "send-failed" | "rejected" | "invalid-response" | "disconnected",
-    readonly operation: string,
-    options?: ErrorOptions,
-  ) {
-    super({
-      unavailable: "Piik App is unavailable",
-      timeout: "Piik App request timed out",
-      "send-failed": "Piik App request failed",
-      rejected: "Piik App request failed",
-      "invalid-response": "Piik App response is invalid",
-      disconnected: "Piik App disconnected",
-    }[reason], options);
-    this.name = "NativeRequestError";
-  }
-}
-
-export async function discoverNativeHealth(
-  options: NativeDiscoveryOptions = {},
-): Promise<NativeHealth | null> {
-  const health = await discoverNative("health", body => nativeHealthSchema.parse(body), options);
-  if (health) debugEvent("native", "discovered", { capabilities: health.nativeMedia });
-  return health;
-}
-
-/** A local approval address is not permission to use native media. */
-export async function discoverNativeConnect(signal?: AbortSignal): Promise<string | null> {
-  return discoverNative("connect-discovery", body => {
-    const { connectURL } = nativeConnectSchema.parse(body);
-    const url = new URL(connectURL);
-    if (url.protocol !== "http:" || url.hostname !== "127.0.0.1" || !url.port ||
-        url.username || url.password || url.pathname !== "/client" || url.search || url.hash) {
-      throw new Error("Invalid local App approval address");
-    }
-    url.searchParams.set("site", window.location.origin);
-    return url.toString();
-  }, { signal });
-}
-
-async function discoverNative<T>(
-  path: "health" | "connect-discovery", read: (body: unknown) => T,
-  { waitForPermission = true, signal }: NativeDiscoveryOptions,
-): Promise<T | null> {
-  if (signal?.aborted) return null;
-  const permission = await localPermission();
-  if (!waitForPermission && permission && permission.state !== "granted") {
-    debugEvent("native", "unavailable", { stage: "permission", permission: permission.state });
-    return null;
-  }
-  if (signal?.aborted) return null;
-  const controller = new AbortController();
-  const abort = () => controller.abort(signal?.reason);
-  signal?.addEventListener("abort", abort, { once: true });
-  // Permission waiting is user-owned; the parallel scan has one network deadline.
-  let timer: number | undefined;
-  const startDeadline = () => { timer ??= window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS); };
-  const permissionChanged = () => { if (permission?.state !== "prompt") startDeadline(); };
-  const awaitingPermission = permission?.state === "prompt";
-  try {
-    if (awaitingPermission) permission.addEventListener("change", permissionChanged);
-    permissionChanged();
-    // An explicit launch stays with its App even when another approved App is faster.
-    const selectedPort = clientRuntimePort();
-    const ports = selectedPort === null ? Array.from({
-      length: NATIVE_CLIENT_PORT_END - NATIVE_CLIENT_PORT_START + 1,
-    }, (_, index) => NATIVE_CLIENT_PORT_START + index) : [selectedPort];
-    return await Promise.any(ports.map(async port => {
-      const response = await fetch(`http://127.0.0.1:${port}/${path}`, {
-        cache: "no-store",
-        signal: controller.signal,
-        ...(isLoopbackPage() ? {} : { targetAddressSpace: "loopback" }),
-      } as RequestInit);
-      startDeadline();
-      if (!response.ok) throw new Error("Piik App discovery was not accepted");
-      const body: unknown = await response.json();
-      const identity = nativeDiscoveryIdentitySchema.safeParse(body);
-      if (!identity.success || identity.data.port !== port) {
-        throw new Error("Not a Piik App discovery response");
-      }
-      if (identity.data.protocol !== NATIVE_CLIENT_PROTOCOL) {
-        throw new NativeCompatibilityError(identity.data.protocol);
-      }
-      return read(body);
-    }));
-  } catch (error) {
-    const incompatible = error instanceof AggregateError
-      ? error.errors.find((failure) => failure instanceof NativeCompatibilityError)
-      : undefined;
-    if (incompatible) {
-      debugEvent("native", "incompatible", {
-        expectedProtocol: NATIVE_CLIENT_PROTOCOL,
-        actualProtocol: incompatible.actualProtocol,
-      });
-      throw incompatible;
-    }
-    // A failed fetch cannot distinguish an absent App from blocked local access.
-    debugEvent("native", "unavailable", { stage: "discovery", timedOut: controller.signal.aborted });
-    return null;
-  } finally {
-    if (awaitingPermission) permission.removeEventListener("change", permissionChanged);
-    signal?.removeEventListener("abort", abort);
-    window.clearTimeout(timer);
-    controller.abort();
-  }
-}
-
-export async function notifyNativePresentation(
-  language: "zh" | "en" | "vis",
-  signal: AbortSignal,
-): Promise<void> {
-  if (signal.aborted) return;
-  const health = await discoverNativeHealth({ signal, waitForPermission: false });
-  if (!health || signal.aborted) return;
-  await fetch(`http://127.0.0.1:${health.port}/presentation`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ language }),
-    signal,
-    ...(isLoopbackPage() ? {} : { targetAddressSpace: "loopback" }),
-  } as RequestInit);
-}
-
-export class NativeClient {
-  private readonly pending = new Map<string, PendingRequest>();
-  private readonly listeners = new Set<(event: NativeClientEvent) => void>();
-  private readonly closeListeners = new Set<() => void>();
-  private closed = false;
+/** App control commands over one authenticated local socket. */
+export class NativeClient extends NativeClientTransport {
   private audioVolumeUpdates = new Map<"set-microphone" | "set-share-volume", { shareId: string; volume: number; done: Promise<void> }>();
 
   private constructor(
-    readonly health: NativeHealth,
-    private readonly socket: WebSocket,
+    health: NativeHealth,
+    socket: WebSocket,
   ) {
-    socket.addEventListener("message", (event) =>
-      this.handleMessage(event.data),
-    );
-    socket.addEventListener("close", () => this.handleClose());
-    socket.addEventListener("error", () => this.handleClose());
+    super(health, socket);
   }
 
   static async connect(options?: NativeDiscoveryOptions): Promise<NativeClient | null> {
@@ -291,24 +102,6 @@ export class NativeClient {
     }
   }
 
-  onEvent(listener: (event: NativeClientEvent) => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-
-  onClose(listener: () => void): () => void {
-    if (this.closed) {
-      listener();
-      return () => undefined;
-    }
-    this.closeListeners.add(listener);
-    return () => this.closeListeners.delete(listener);
-  }
-
-  async ping(): Promise<void> {
-    await this.request("ping", {}, pongResponseSchema);
-  }
-
   async captureOptions(): Promise<NativeAdapter[]> {
     const response = await this.request(
       "capture-options",
@@ -345,7 +138,8 @@ export class NativeClient {
     input: NativeShareInput,
     onRequested?: () => void,
   ): Promise<{ audio: boolean; codec: NativeVideoCodec; sourceAudio?: boolean }> {
-    // Older Apps reject unknown command fields.
+    // Commands carry only fields that the probed helper or the requested
+    // source actually needs; the rest are fixed facts of this build.
     const { showCaptureBorder = false, excludeAudio, ...shareInput } = input;
     this.validateAudioExclusion(excludeAudio);
     const response = await this.request(
@@ -354,11 +148,11 @@ export class NativeClient {
         ...shareInput,
         ...(excludeAudio ? { excludeAudio } : {}),
         // Keep a stable output for source-audio toggles during sharing.
-        ...(this.health.nativeMedia.microphone || this.health.nativeMedia.shareVolume ? { microphoneMixing: true } : {}),
+        microphoneMixing: true,
         ...(this.health.nativeMedia.remoteInput ? { remoteInput: true } : {}),
         ...(this.health.nativeMedia.captureBorderControl ? { showCaptureBorder } : {}),
-        ...(this.health.nativeMedia.sourceCancellation ? { reportSourceCancellation: true } : {}),
-        ...(this.health.nativeMedia.captureFailureDetails ? { reportCaptureFailure: true } : {}),
+        reportSourceCancellation: true,
+        reportCaptureFailure: true,
       },
       shareStartedResponseSchema,
       input.source.kind === "picker" ? null : REQUEST_TIMEOUT_MS,
@@ -407,7 +201,7 @@ export class NativeClient {
         adapterIndex: path.adapterIndex,
         encoderIndex: path.encoderIndex,
         ...(this.health.nativeMedia.captureBorderControl ? { showCaptureBorder } : {}),
-        ...(this.health.nativeMedia.sourceCancellation ? { reportSourceCancellation: true } : {}),
+        reportSourceCancellation: true,
       },
       shareSourceReplacedResponseSchema,
       source.kind === "picker" ? null : REQUEST_TIMEOUT_MS,
@@ -614,7 +408,7 @@ export class NativeClient {
       {
         shareId,
         connectionId,
-        ...(this.health.nativeMedia.receiverReuse ? { reuseReceiver: true } : {}),
+        reuseReceiver: true,
         edgeCapacity,
         ...(punched ? { punched: true } : {}),
         iceServers: iceConfig.iceServers.map((server) => ({
@@ -735,8 +529,7 @@ export class NativeClient {
   }
 
   async setRemoteControlPolicy(shareId: string, mode: RemoteControlMode, password?: string): Promise<void> {
-    await this.request("set-remote-control-policy", { shareId, mode, ...(password !== undefined ? { password } : {}),
-      ...(this.health.nativeMedia.remoteCoPlay ? { coPlay: true } : {}) }, nativeAckResponseSchema, null);
+    await this.request("set-remote-control-policy", { shareId, mode, ...(password !== undefined ? { password } : {}), coPlay: true }, nativeAckResponseSchema, null);
   }
 
   async remoteStopShortcut(shareId: string, key?: number): Promise<RemoteStopShortcut> {
@@ -766,154 +559,16 @@ export class NativeClient {
     );
   }
 
-  close(): void {
-    if (this.closed) return;
-    this.closed = true;
+  protected retireCommands(): void {
     this.audioVolumeUpdates.clear();
-    this.rejectPending();
-    this.listeners.clear();
-    this.closeListeners.clear();
-    if (this.socket.readyState < WebSocket.CLOSING) {
-      this.socket.close(1000, "page closed");
-    }
-  }
-
-  private request<T>(
-    type: string,
-    fields: object,
-    schema: z.ZodType<T>,
-    timeoutMs: number | null = REQUEST_TIMEOUT_MS,
-    onRequested?: () => void,
-  ): Promise<T> {
-    if (this.closed || this.socket.readyState !== WebSocket.OPEN) {
-      return Promise.reject(new NativeRequestError("unavailable", type));
-    }
-    const id = createOpaqueId();
-    const began = performance.now();
-    const details = { type, requestId: id };
-    return new Promise<T>((resolveRequest, rejectRequest) => {
-      const timer =
-        timeoutMs === null
-          ? null
-          : window.setTimeout(() => {
-              this.pending.delete(id);
-              debugEvent("native", "request-timeout", { ...details, durationMs: performance.now() - began });
-              rejectRequest(new NativeRequestError("timeout", type));
-            }, timeoutMs);
-      this.pending.set(id, {
-        operation: type,
-        schema,
-        resolve: (value) => {
-          debugEvent("native", "response", { ...details, durationMs: performance.now() - began, applied: value });
-          resolveRequest(value as T);
-        },
-        reject: (error) => {
-          debugError("native", "request-failed", error, { ...details, durationMs: performance.now() - began });
-          rejectRequest(error);
-        },
-        timer,
-      });
-      try {
-        debugEvent("native", "request", { ...details, requested: fields, timeoutMs });
-        this.socket.send(
-          JSON.stringify({
-            version: NATIVE_CLIENT_PROTOCOL,
-            id,
-            type,
-            ...fields,
-          }),
-        );
-      } catch (error) {
-        if (timer !== null) window.clearTimeout(timer);
-        this.pending.delete(id);
-        debugError("native", "request-failed", error, { ...details, durationMs: performance.now() - began });
-        rejectRequest(new NativeRequestError("send-failed", type, { cause: error }));
-        return;
-      }
-      onRequested?.();
-    });
-  }
-
-  private handleMessage(raw: unknown): void {
-    let value: unknown;
-    try {
-      value = JSON.parse(String(raw));
-    } catch {
-      debugEvent("native", "protocol-failed", { stage: "json-invalid" });
-      this.failConnection();
-      return;
-    }
-    const id = requestId(value);
-    if (id) {
-      const pending = this.pending.get(id);
-      if (!pending) return;
-      this.pending.delete(id);
-      if (pending.timer !== null) window.clearTimeout(pending.timer);
-      const failure = requestFailedResponseSchema.safeParse(value);
-      if (failure.success) {
-        if (failure.data.code === "source-canceled") {
-          pending.reject(new DOMException("Source selection canceled", "NotAllowedError"));
-          return;
-        }
-        pending.reject(new NativeRequestError("rejected", pending.operation, { cause: { code: failure.data.code } }));
-        return;
-      }
-      const parsed = pending.schema.safeParse(value);
-      if (parsed.success) {
-        pending.resolve(parsed.data);
-      } else {
-        pending.reject(new NativeRequestError("invalid-response", pending.operation, { cause: parsed.error }));
-      }
-      return;
-    }
-    const event = nativeEventSchema.safeParse(value);
-    if (!event.success) {
-      // A rejected observation has no control authority. Drop it without
-      // retiring healthy media; its identity/state must still pass to be used.
-      if (value && typeof value === "object" && "type" in value &&
-        (value.type === "edge-quality" || value.type === "publication-quality")) {
-        debugError("native", "quality-sample-invalid", event.error);
-        return;
-      }
-      debugError("native", "protocol-failed", event.error, { stage: "event-invalid" });
-      this.failConnection();
-      return;
-    }
-    debugEvent("native", "event", event.data);
-    for (const listener of this.listeners) {
-      listener(event.data);
-    }
-  }
-
-  private handleClose(): void {
-    if (this.closed) return;
-    debugEvent("native", "closed");
-    this.closed = true;
-    this.rejectPending();
-    this.listeners.clear();
-    const listeners = [...this.closeListeners];
-    this.closeListeners.clear();
-    for (const listener of listeners) listener();
-  }
-
-  private failConnection(): void {
-    if (this.socket.readyState < WebSocket.CLOSING) {
-      this.socket.close(1008, "invalid Client message");
-    }
-    this.handleClose();
-  }
-
-  private rejectPending(): void {
-    for (const request of this.pending.values()) {
-      if (request.timer !== null) window.clearTimeout(request.timer);
-      request.reject(new NativeRequestError("disconnected", request.operation));
-    }
-    this.pending.clear();
   }
 }
 
-function requestId(value: unknown): string | null {
-  if (!value || typeof value !== "object" || !("id" in value)) return null;
-  const id = (value as { id?: unknown }).id;
-  return typeof id === "string" ? id : null;
-}
+export {
+  discoverNativeHealth,
+  discoverNativeConnect,
+  notifyNativePresentation,
+  isLoopbackPage,
+  NativeCompatibilityError,
+} from "./client-discovery";
+export { NativeRequestError } from "./client-transport";

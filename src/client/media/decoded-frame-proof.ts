@@ -1,6 +1,6 @@
 const DECODED_FRAME_PROOF_INTERVAL_MS = 100;
 
-export interface DecodedFrameProofOptions {
+interface DecodedFrameProofOptions {
   readFramesDecoded: () => Promise<number | null>;
   owns: () => boolean;
   requireProgress?: boolean;

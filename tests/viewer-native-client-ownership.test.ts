@@ -5,9 +5,10 @@ import { expect, it, vi } from "vitest";
 import { NativeCompatibilityError } from "../src/client/native/client";
 import { NativeClientConnection } from "../src/client/native/client-connection";
 
-// Exercise the page's connection owner without mounting media or room signaling.
-const source = ts.createSourceFile("ViewerPage.tsx", readFileSync(
-  new URL("../src/client/pages/ViewerPage.tsx", import.meta.url), "utf8",
+// Exercise the session hook's connection owner without mounting media or
+// room signaling.
+const source = ts.createSourceFile("use-viewer-session.ts", readFileSync(
+  new URL("../src/client/pages/viewer/use-viewer-session.ts", import.meta.url), "utf8",
 ), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const owners = new Set(["nativeConnection", "nativeViewerAvailable", "acquireNativeClient", "releaseNativeClient"]);
 const declarations: string[] = [];

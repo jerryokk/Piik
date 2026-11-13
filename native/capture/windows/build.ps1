@@ -57,7 +57,7 @@ function Invoke-CaptureBuild([string]$command) {
     }
 }
 
-$objects = foreach ($name in @('main', 'process_audio', 'capture_target', 'h264_encoder', 'adaptive_encoder')) {
+$objects = foreach ($name in @('main', 'process_audio', 'capture_target', 'capture_preview', 'h264_encoder', 'adaptive_encoder', 'capture_arguments', 'capture_frames', 'capture_devices', 'capture_encoder', 'capture_probe', 'capture_audio', 'capture_workers', 'capture_runs')) {
     $source = Join-Path $helperDirectory ($name + '.cpp')
     $object = Join-Path $outputPath ($name + '.obj')
     $definitions = if ($name -eq 'adaptive_encoder') { '/DWEBRTC_WIN /DRTC_ENABLE_H265 /DNOMINMAX' } else { '' }
@@ -76,13 +76,18 @@ if ($Check) {
         Invoke-CaptureBuild ('cl.exe {0} "{1}" /Fo:"{2}"' -f $compileFlags,$source,$object)
         $codecObjects = if ($name -eq 'capture_control') { '"{0}" "{1}"' -f $vp8Object,$webrtc.Library } else { '' }
         if ($name -eq 'capture_target') {
-            $codecObjects = '"{0}"' -f (Join-Path $outputPath 'capture_target.obj')
+            $codecObjects = (@('capture_target', 'capture_preview') | ForEach-Object {
+                '"{0}"' -f (Join-Path $outputPath ($_ + '.obj'))
+            }) -join ' '
         }
         if ($name -eq 'adaptive_encoder') {
             $codecObjects = '"{0}" "{1}"' -f (Join-Path $outputPath 'h264_encoder.obj'),$webrtc.Library
         }
         if ($name -eq 'output_worker') {
-            $codecObjects = (@('h264_encoder', 'process_audio', 'capture_target') | ForEach-Object {
+            $codecObjects = (@('h264_encoder', 'process_audio', 'capture_target',
+                'capture_preview', 'capture_arguments', 'capture_frames',
+                'capture_devices', 'capture_encoder', 'capture_probe', 'capture_audio',
+                'capture_workers', 'capture_runs') | ForEach-Object {
                 '"{0}"' -f (Join-Path $outputPath ($_ + '.obj'))
             }) -join ' '
             $codecObjects += ' "{0}"' -f $webrtc.Library
@@ -97,7 +102,10 @@ if ($CheckColor) {
     $object = Join-Path $outputPath 'frame_converter.probe.obj'
     $executable = Join-Path $outputPath 'frame_converter.probe.exe'
     Invoke-CaptureBuild ('cl.exe {0} "{1}" /Fo:"{2}"' -f $compileFlags,$source,$object)
-    $dependencies = @('process_audio', 'capture_target', 'h264_encoder', 'adaptive_encoder') | ForEach-Object {
+    $dependencies = @('process_audio', 'capture_target', 'capture_preview',
+        'h264_encoder', 'adaptive_encoder', 'capture_arguments', 'capture_frames',
+        'capture_devices', 'capture_encoder', 'capture_probe', 'capture_audio',
+        'capture_workers', 'capture_runs') | ForEach-Object {
         '"{0}"' -f (Join-Path $outputPath ($_ + '.obj'))
     }
     Invoke-CaptureBuild ('{0} /out:"{1}" "{2}" {3} "{4}" {5}' -f $linkCommand,$executable,$object,($dependencies -join ' '),$webrtc.Library,$systemLibraries)

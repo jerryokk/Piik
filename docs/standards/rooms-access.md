@@ -1,23 +1,23 @@
 # Rooms And Access
 
 This file owns the current room, admission, invitation, interaction, and persistence
-contract. [ADR-0002](../adr/0002-memory-resident-protected-rooms.md) explains
-the storage decision; implementation detail belongs in code and tests.
+contract. [Rooms](../architecture/rooms.md) explains the storage decision;
+implementation detail belongs in code and tests.
 
 ## Room Authority
 
 - A room has one Host and at most 20 authenticated Viewers.
 - Room codes are random free four-digit values from `1000..9999`. A code locates
   a room within its site authority; it is not globally unique, a secret or a
-  permanent identity. App public-link rooms belong to that App's local authority.
+  permanent identity. App Public Link rooms belong to that App's local authority.
 - Every room has a 256-bit Host token. The server stores only its digest; the
   owning Browser keeps the raw token locally.
 - Each Host tab retains its current room in session storage. The origin keeps
   one persistent resume hint and a separate preferred code; a new tab may resume
-  that room only when no other tab claims it. Secure Browser origins use Web
-  Locks, including protection against copied tab storage. Without Web Locks,
-  fresh tabs create independent rooms and same-tab reload can retain authority,
-  but duplicated-tab exclusion is not guaranteed. Closing the tab releases its
+  that room only when no other tab claims it, enforced on secure origins by Web
+  Locks, including against copied tab storage. Without Web Locks, fresh tabs
+  create independent rooms and same-tab reload can retain authority, but
+  duplicated-tab exclusion is not guaranteed. Closing the tab releases its
   claim; losing Host authority clears that tab without erasing another tab's
   resume hint.
 - Room identity and credentials have no inactivity expiry by default. The exact
@@ -28,10 +28,10 @@ the storage decision; implementation detail belongs in code and tests.
   room and invalidates the old ownership, invitations, password, sessions,
   routes, and media resources. It ends an active share and stops its capture
   tracks; it does not migrate or automatically restart capture.
-- A locally remembered preferred code is only a request. The server remains the
-  authority and allocates another code when that code is unavailable. The store
-  remains bounded by 9,000 codes; full allocation rejects new rooms when no
-  empty room may be reclaimed under the deployment's retention policy.
+- A locally remembered preferred code is only a request; the server allocates
+  another code when it is unavailable. The store remains bounded by 9,000 codes;
+  full allocation rejects new rooms when no empty room may be reclaimed under the
+  deployment's retention policy.
 
 ### Optional empty-room retention
 
@@ -45,46 +45,44 @@ expiry checks, normally every 30 seconds.
 With retention enabled, allocation first reclaims expired empty rooms; if none
 are available, it may retire the earliest-created empty room before the timeout,
 including when replacing a room code. Early reclamation observes the existing
-20-second reconnect grace after creation, restore or the last departure. Occupied rooms
-are never candidates; a replacement cannot reclaim its own old room before the
-replacement commits. If all rooms are occupied, creation still returns capacity
-exhaustion. Expiry and pressure retirement use the same storage-first deletion
-and signaling cleanup as explicit abandonment; recycled codes never retain old
-credentials, share generations or reconnect timers.
+20-second reconnect grace after creation, restore or the last departure. Occupied
+rooms are never candidates; a replacement cannot reclaim its own old room before
+the replacement commits. If all rooms are occupied, creation still returns
+capacity exhaustion. Expiry and pressure retirement use the same storage-first
+deletion and signaling cleanup as explicit abandonment; recycled codes never
+retain old credentials, share generations or reconnect timers.
 
-The empty interval is process-local. Restored rooms receive a fresh interval so
-surviving pages can reconnect; allocation pressure can still reclaim them while
-empty. SQLite restores the insertion order of retained rows. This policy adds
-no room lease, client renewal, wire field or persisted presence. Deletion ends
-both ownership and invitations; ordinary missing-room/invalid-credential handling
-applies. [Configuration](./configuration.md#room-retention) owns deployment values.
-Disabling retention stops future reclamation; it cannot restore retired authority.
+The empty interval is process-local: restored rooms receive a fresh interval so
+surviving pages can reconnect, while allocation pressure can still reclaim them,
+in restored insertion order. The policy adds no room lease, client renewal, wire
+field or persisted presence. Deletion ends ownership and invitations under
+ordinary missing-room/invalid-credential handling; disabling retention stops
+future reclamation but cannot restore retired authority. [Configuration](./configuration.md#room-retention)
+owns deployment values.
 
 ## Admission Paths
 
 Three independent authorities exist:
 
-1. **Site access.** `SITE_ACCESS_PASSWORD` is optional in every environment,
-   including production. Unset or empty makes site access immediate without a
-   cookie; room ownership and Viewer admission still apply. When configured,
-   successful password entry creates a stateless, HttpOnly,
-   `SameSite=Strict` cookie with a 24-hour rolling idle lifetime. An already
-   authorized page renews it through the site-access check while it remains
-   active. It authorizes room creation, Host role, and code-only Viewer
-   attempts; it is not a room credential, and Viewer-grant admission cannot
-   create or renew it. Cookie transport attributes follow the configured
-   production destination: HTTPS retains the Secure host-prefixed cookie, while a
-   separately configured HTTP origin, such as App loopback, uses its HTTP cookie. Login,
-   renewal, room creation and WebSocket admission use that same selection.
-   Cookie signatures use a random process key independent of the password;
-   restarting the Server/App requires site-password entry again. This does not
-   revoke persisted room ownership or Viewer invitations. The application
-   rejects framing through its own HTTP headers, including without a proxy.
-   A signaling authentication failure alone does not establish site-access
-   loss: its existing error also covers an incomplete or timed-out room
-   handshake. The Host checks the site-access authority before entering the
-   password gate; an allowed or unavailable check retains ordinary connection
-   recovery. Explicit room credential rejection remains terminal.
+1. **Site access.** `SITE_ACCESS_PASSWORD` is optional in every environment.
+   Unset or empty makes site access immediate without a cookie. When configured,
+   password entry creates a stateless, HttpOnly, `SameSite=Strict` cookie with a
+   24-hour rolling idle lifetime, renewed by an active page's site-access check.
+   It authorizes room creation, the Host role and code-only Viewer attempts; it
+   is not a room credential, and Viewer-grant admission cannot create or renew
+   it. Cookie transport follows the configured destination: HTTPS uses the
+   Secure host-prefixed cookie, while a separately configured HTTP origin, such
+   as App loopback, uses its HTTP cookie; login, renewal, room creation and
+   WebSocket admission share that selection. Signatures use a random process
+   key independent of the password, so restarting the Server/App requires
+   password entry again without revoking persisted room ownership or
+   invitations. The application rejects framing through its own HTTP headers,
+   including without a proxy.
+   A signaling authentication failure alone does not establish site-access loss,
+   because the same error covers an incomplete or timed-out room handshake. The
+   Host checks site-access authority before entering the password gate; an
+   allowed or unavailable check retains ordinary connection recovery. Explicit
+   room credential rejection remains terminal.
 2. **Host ownership.** The exact Host token authorizes that room's Host and
    access-management operations. It cannot authorize another room.
 3. **Viewer invitation.** Every room creates a 128-bit, 22-character base64url
@@ -101,7 +99,7 @@ when the Host rotates or revokes it.
 The Host can omit the grant from the displayed/copied link. This page-local
 choice defaults to including it and does not change admission policy, revoke
 existing invitations or clear a recipient's valid authorization. The ordinary
-room address retains the server-provided site and room path; it follows site
+room address retains the server-provided site and room path and follows site
 access and code-entry rules. An invite-only room has no ordinary-address entry.
 
 Code-only admission is independent of invitations:
@@ -111,41 +109,34 @@ Code-only admission is independent of invitations:
 - `private` with a password additionally admits a site-authorized matching
   code-and-password attempt.
 
-An unknown or deleted code returns `ROOM_NOT_FOUND`. A current room
-that refuses a code-only attempt returns the generic `ROOM_ACCESS_DENIED` result
-without exposing its exact policy. Invalid grants and Host ownership failures
-remain separate.
+An unknown or deleted code returns `ROOM_NOT_FOUND`. A current room that refuses
+a code-only attempt returns the generic `ROOM_ACCESS_DENIED` result without
+exposing its exact policy. Invalid grants and Host ownership failures remain
+separate.
 
 Rotating or revoking the Viewer grant is a strong authorization change. The new
 generation is committed before old Viewers, signaling grace, routes, and sender
 edges are closed. An affected SFU Viewer's exact embedded subscription is closed
-before its egress reservation is released. Room-authenticated signaling cannot
-recreate a revoked subscription; no separate media token survives revocation.
-Changing code-entry policy or password affects later
-code-only attempts and does not silently revoke invitations.
+before its egress reservation is released; room-authenticated signaling cannot
+recreate a revoked subscription, and no separate media token survives
+revocation. Changing code-entry policy or password affects later code-only
+attempts and does not silently revoke invitations.
 
 ## Room Interactions
 
 Text and reactions reuse the authenticated room signaling connection. The server
 derives sender identity from that session and accepts targeted reactions only
-for participants still connected to the same room. Interaction subscriptions
-inherit existing membership, replacement and revocation checks; they grant no
-additional authority and do not modify media routes.
+for participants still connected to the same room. Every authenticated
+participant is ready for interactions; being ready grants no additional
+authority and does not modify media routes.
 
-The reaction palette is curated, with no free-form input. Additions preserve
-existing choices.
-
-Sending a reaction requires a registered identifier. The Server advertises its
-command registry through the optional `roomReactionIds` runtime capability.
-The palette and send owner use its intersection with effects the page knows;
-an absent registry retains the published 2.1 reaction set. Interaction-ready
-events keep their existing shape.
+The reaction palette is curated, with no free-form input; additions preserve
+existing choices. Sending requires one registered identifier that both the
+Server and the page know. Interaction-ready events keep their existing shape.
 Received reaction events validate their envelope, identity, target and bounded
-identifier, then the page
-skips effects it cannot display. An unknown effect does not terminate signaling,
-enter history, clear a draft or confirm a pending send. Unknown message kinds,
-extra fields and malformed identities remain invalid; this presentation rule
-does not make commands or access checks extensible.
+identifier. An unknown effect is rejected like any other invalid message: it
+does not enter history, clear a draft or confirm a pending send. Unknown message
+kinds, extra fields and malformed identities are invalid too.
 
 Delivery is transient and bounded. The server keeps no message history; each
 page keeps only a bounded set of received messages and effects, without writing
@@ -156,27 +147,26 @@ end-to-end encrypted, and the site operator can access live message contents.
 
 A send-confirmation timeout releases the send control without retransmitting.
 A late reply on the same connection can still settle the latest submitted send;
-another submitted send or reconnection retires that confirmation identity. Only confirmation
-of the matching chat text clears its draft.
+another submitted send or reconnection retires that confirmation identity. Only
+confirmation of the matching chat text clears its draft.
 
 [Presentation and lifecycle](./presentation-lifecycle.md#product-surface) owns
 the distinction between a room session and its current media publication.
-[Interaction research](../research/room-interactions.md) records delivery bounds,
-compatibility and design rationale.
+[Rooms](../architecture/rooms.md) records delivery bounds and design rationale.
 
 ## Room Voice
 
-Optional room voice uses the same authenticated room.
-The Host joining opens room voice; leaving closes it for everyone. Channel
-availability is derived from that membership, not a separate switch. Authenticated
-room members can join an open channel without another approval. Joining never
-opens a microphone. Closing clears everyone's voice membership and publications;
-reopening does not rejoin Viewers or restart microphones. Each speaker explicitly
-starts capture and owns one server-assigned publication; mute, leaving and
-session replacement retire that publication. Local mute changes
-only the listener's playback, including when that listener relays for others.
-Pausing listening mutes all local room-voice playback without changing the
-microphone, membership or forwarding. Microphone and listening are independent.
+Optional room voice uses the same authenticated room. The Host joining opens
+room voice; leaving closes it for everyone. Channel availability derives from
+that membership, not a separate switch. Authenticated room members can join an
+open channel without another approval. Joining never opens a microphone.
+Closing clears everyone's voice membership and publications; reopening does not
+rejoin Viewers or restart microphones. Each speaker explicitly starts capture
+and owns one server-assigned publication; mute, leaving and session replacement
+retire that publication. Local mute changes only the listener's playback,
+including when that listener relays for others. Pausing listening mutes all
+local room-voice playback without changing the microphone, membership or
+forwarding. Microphone and listening are independent.
 The Host owns one room-wide voice bitrate ceiling. Changing it does not open
 voice, activate microphones or replace routes. It is live room state, not App
 configuration; [media quality](./media-quality.md#capture-and-controls) owns its bounds.
@@ -184,9 +174,8 @@ configuration; [media quality](./media-quality.md#capture-and-controls) owns its
 Joining also authorizes a participant to forward decodable voice. A video relay
 outside voice cannot carry it; the existing route controller selects a joined
 path or reports that voice is unavailable. Local deafening never removes that
-forwarding responsibility.
-This is transport encryption between neighbors, not end-to-end encryption
-against an admitted relay or the SFU operator.
+forwarding responsibility. This is transport encryption between neighbors, not
+end-to-end encryption against an admitted relay or the SFU operator.
 
 Voice membership and routes outlive picture pause, stop and source replacement.
 Leaving voice releases its microphone and forwarding demand; room retirement or
@@ -210,20 +199,18 @@ never presses, movement or text. Missing current target geometry suspends input
 until observation recovers; confirmed target identity loss retires its grants.
 
 Remote control defaults to one controller. The Host can enable **Allow
-simultaneous control** for the current source so approved, capability-negotiated
-Viewers share input through the same authorization choice. Changing this setting
+simultaneous control** for the current source so approved Viewers share input through the same authorization choice. Changing this setting
 retires current requests and grants without changing the authorization mode or
-password; replacing the source resets it off. Older published clients retain the
-exclusive keyboard/mouse baseline. Gamepad support and participant presentation
-remain available with simultaneous control off.
+password; replacing the source resets it off. Gamepad support and participant
+presentation remain available with simultaneous control off.
 One grant authorizes one Viewer to use keyboard/mouse and an optional supported
-gamepad. Switching or combining input devices requires no additional approval.
-The simultaneous-control limit counts approved Viewers, not device types.
-Held keys and mouse buttons belong to each grant; releasing one
-participant cannot release another's still-held inputs. All approved keyboard/mouse
-grants contribute to the same pointer, with no per-player mouse assignment or
-join-order priority. Committed text insertion is available with one approved
-Viewer and pauses while two or more grants coexist; physical key input remains available.
+gamepad; switching or combining input devices requires no additional approval,
+and the simultaneous-control limit counts approved Viewers, not device types.
+Held keys and mouse buttons belong to each grant; releasing one participant
+cannot release another's still-held inputs. All approved keyboard/mouse grants
+drive the same pointer, with no per-player mouse assignment or join-order
+priority. Committed text insertion is available with one approved Viewer and
+pauses while two or more grants coexist; physical key input remains available.
 Input still belongs to one process-wide source owner, not multiple simultaneous shares.
 
 Collaboration markers describe granted participation, not live key or pointer
@@ -235,28 +222,31 @@ This presentation neither grants control nor creates another routing path.
 
 Optional Windows x64 gamepad use creates independent Xbox 360 devices through
 the public device interface of an already-installed ViGEmBus. Optional input
-drivers and third-party input SDK binaries stay external on every platform:
-Piik does not download, install or bundle them. Each approved Viewer owns their
-virtual device under the same remote-control grant. Windows is subject to the four
-XInput slots shared with the Host's existing devices; slot limits belong to the
-platform backend. Driver connection and target creation determine availability;
-keyboard/mouse input continues when the optional backend is unavailable.
-Linux uinput has kernel-level validation; macOS virtual HID remains a prototype, with
-platform permissions and evidence limits recorded in the
-[co-play assessment](../research/room-interactions.md#remote-co-play).
+drivers and third-party input SDK binaries stay external: Piik does not download,
+install or bundle them. Each approved Viewer may drive several controllers, one
+virtual device per Browser gamepad index, under the same remote-control grant.
+Every device — virtual or the Host's own — shares the same four XInput slots, so
+the ceiling is one budget rather than two. Driver connection and target creation
+determine availability; a controller that the driver accepts but XInput never
+reports is retired rather than counted. A controller with no free slot is
+refused on its own, by Browser index, and the Viewer's others keep running;
+retrying is always the Viewer's explicit choice. Keyboard/mouse input continues
+when the optional backend is unavailable.
 
-Losing shared-window focus releases held input and neutralizes gamepads while
-keeping grants suspended. Disconnecting a gamepad neutralizes and removes only
-its device; ending remote control releases every input owned by that Viewer. The Host's stop
-shortcut ends all remote input. The [reader guide](../guide/remote-control.md)
-owns usage and driver setup; [interaction research](../research/room-interactions.md#remote-co-play)
-owns backend rationale and measurements.
+Losing shared-window focus releases held input and neutralizes every controller
+the Viewer owns while keeping grants suspended. Disconnecting one controller
+neutralizes and removes only that device, leaving the Viewer's others running;
+its index may carry a different controller next. Ending remote control releases
+every input and controller owned by that Viewer.
+The Host's stop shortcut ends all remote input. The
+[reader guide](../guide/remote-control.md) owns usage and driver setup;
+[native host](../architecture/native-host.md#remote-input) owns the Windows
+backend design and its bounds.
 
 ## Persistence Modes
 
 - **Stable mode (Hosted default):** one exact-schema SQLite owner persists room
-  authority across application restart. `ROOM_DATABASE_PATH` selects an absolute
-  file path; absent or empty uses `rooms.sqlite` in the working directory.
+  authority across application restart.
 - **Lightweight mode:** explicit `ROOM_DATABASE_PATH=:memory:` keeps room authority
   in process memory and all rooms disappear on restart.
 - **App Local mode:** the packaged App composes the same memory RoomStore
@@ -264,23 +254,23 @@ owns backend rationale and measurements.
   last-confirmed mode preferences follow [App configuration](./configuration.md#piik-app-configuration);
   rooms and media state remain process-only. A blank password leaves that site open.
 
-Persistence evidence, limits and the earlier cross-restart evaluation live in
-[cross-restart recovery research](../research/cross-restart-room-recovery.md).
+[Configuration](./configuration.md#application-environment) owns the database
+path; [verification status](../verification-status.md) records the persistence
+evidence.
 
 The App opens its own localhost Host page with the configured password, when
 present, in a fragment. The page removes the fragment and uses the existing
 SiteAccess endpoint; this does not create a fourth admission authority. LAN and
-one-link Internet Viewers use the same room-scoped invitation grant; its
-fragment never enters the public tunnel request, and the Host's Local RoomStore
-remains the only authority.
-Selecting a Site moves room authority wholly to that Site rather than
-synchronizing two stores.
+Public Link Viewers use the same room-scoped invitation grant; its fragment
+never enters the public tunnel request, and the Host's Local RoomStore remains
+the only authority. Selecting a Site moves room authority wholly to that Site
+rather than synchronizing two stores.
 
 Stable mode does not persist participants, signaling sessions, sharing state,
 routes, codec decisions, quality evidence, or SFU state. After restart, clients
 reauthenticate and rebuild media. No restored room is considered online until
 fresh sessions connect. [Status](../status.md) owns the selected deployment mode and
-ADR-0002 owns storage validation.
+[Rooms](../architecture/rooms.md#storage-modes) owns storage validation.
 
 The Host Browser may persist its creation preferences, including policy and an
 optional room password. Raw Viewer grants never enter `localStorage`, cookies,

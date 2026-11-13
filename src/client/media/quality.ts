@@ -11,7 +11,7 @@ import { say, type CopyKey } from "../ui/copy";
 import type { MediaFailure } from "../ui/media-failure";
 import { displayMediaOptions } from "./audio-capture";
 import { browserDebugEnabled, debugOperation } from "../lib/debug";
-import { debugTrack } from "../lib/debug-webrtc";
+import { debugTrack } from "../lib/debug/webrtc";
 import { applySenderCaptureConstraints, senderCaptureTrack } from "./sender-video-track";
 import { cameraCaptureConstraints } from "./capture-devices";
 

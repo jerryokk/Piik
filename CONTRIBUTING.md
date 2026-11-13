@@ -3,15 +3,15 @@
 ## Ways To Help
 
 Corrections, translations, bug reports and code contributions are welcome.
-English and Chinese are both welcome in issues and PRs.
+English and Chinese are both welcome in feedback and contributions.
 欢迎用中文或英文参与讨论，从一处文案修正或一次问题反馈开始也很好。
 
 | Contribution / 参与方式 | Start here / 从这里开始 |
 | --- | --- |
 | Translate or improve wording / 翻译、校对文案 | [Translation guide](./docs/guide/translating.md) · [中文翻译教程](./docs/guide/translating.zh-CN.md) |
-| Report a bug / 反馈问题 | [Issue templates](https://github.com/TNTcraftHIM/Piik/issues/new/choose); include version, environment, steps and actual result / 附版本、环境、步骤与实际结果 |
+| Report a bug / 反馈问题 | Export a diagnostic bundle from Piik App and send it, with the steps and actual result, to whoever provides your Piik / 在 Piik App 中导出诊断包，连同操作步骤与实际结果发给提供 Piik 的人 |
 | Improve a guide / 改进教程 | [Documentation map](./docs/README.md); identify the confusing step and explain the expected result / 指出不清楚的步骤及预期结果 |
-| Suggest a feature / 功能建议 | Search [existing issues](https://github.com/TNTcraftHIM/Piik/issues) first, then describe the use case / 先搜索已有讨论，再说明使用场景 |
+| Suggest a feature / 功能建议 | Describe the use case to whoever provides your Piik / 向提供 Piik 的人说明使用场景 |
 | Contribute code / 参与开发 | [Run from source](./docs/README.md#run-from-source), then follow the workflow below / 从源码启动，按下文流程修改 |
 
 Keep feedback specific and respectful. Explain a wording or design disagreement
@@ -30,9 +30,7 @@ accurately, without attributing independently written code to a PR author.
 Keep contributor patches limited to their necessary changes. Integrate accepted
 external contributions through their own focused PRs, preserving their authors
 separately from a larger maintainer phase. A focused PR may land on `main`
-without releasing a product version; use the
-[publication hold](./docs/operations/github.md#enable-automatic-publication-once)
-before a non-publishing merge. A co-author trailer credits a whole commit, not
+without releasing a product version. A co-author trailer credits a whole commit, not
 selected lines; do not use a phase-wide squash to attribute unrelated maintainer work.
 Check authorship on the final default-branch commit, not only on patch commits
 that a later squash may discard. Use Git authorship for accepted contributions;
@@ -41,7 +39,7 @@ do not maintain a separate thanks list or manufacture empty credit commits.
 已经独立解决的重复工作、个人偏好或收益很低的改动可以不合并，不为增加贡献者名单而合并。
 保留已接纳贡献的作者信息，如实说明有价值的问题发现；独立编写的代码不应冒记为他人共同编写。
 接纳的外部贡献单独以小范围 PR 合入，保留作者身份，不混入维护者的大批改动。
-合入 main 不要求立即发版；暂不发布时，合并前先暂停自动发布。共同署名作用于整个提交，不能按行分配；
+合入 main 不要求立即发版。共同署名作用于整个提交，不能按行分配；
 验收署名以最终进入默认分支的提交为准，不另设鸣谢名单或空提交补贡献计数。
 
 ## Lean Workflow
@@ -72,9 +70,9 @@ one complete, reviewed change; a contribution merge does not authorize publicati
 
 1. Create one short-lived branch/worktree from exact canonical `main`, following the [branch naming convention](#commit-pr-and-branch-names).
 2. Update only the single durable owner for changed semantics and any materially changed current snapshot. If semantics remain disputed, record a hold and stop dependent work.
-3. Before release approval, review official security and patch releases for direct runtime/build dependencies and whether upstream now covers retained patches. Update for concrete fixes and verify the affected consumers; a newer version alone is not a release blocker. Run repository hygiene, dependency advisory checks, `npm run check`, and the relevant browser/network gates in proportion to the whole acceptance boundary. CI checks advisories before the full Go build and package matrix.
+3. Before release approval, review official security and patch releases for direct runtime/build dependencies and whether upstream now covers retained patches. Update for concrete fixes and verify the affected consumers; a newer version alone is not a release blocker. Run repository hygiene (`scripts/checks/check-project-state.ps1`), `npm audit --audit-level=high` for the locked Web dependencies, `cargo audit` when installed, `npm run check`, the relevant browser/network gates, and review in proportion to the whole acceptance boundary.
 4. Keep accepted truth checkpoints and dependent candidates on branches until the phase is complete. Rebase or rebuild a retained candidate from exact `main` only when starting a new phase, preserving main's owning truth on conflicts and transplanting only approved scoped code, tests, and new facts.
-5. Open one pull request for the complete phase, resolve required review/checks, meet the [release approval boundary](./docs/standards/versioning.md#automatic-publication) before a publishing merge, squash-merge it once, deploy that merged revision when authorized, perform scoped postflight, then audit references and reparse safety before cleanup.
+5. Open one pull request for the complete phase, resolve required review/checks, meet the [release approval boundary](./docs/standards/versioning.md#shipping) before tagging a release, squash-merge it once, deploy that merged revision when authorized, perform scoped postflight, then audit references and reparse safety before cleanup.
 
 One coherent phase should leave one meaningful squash commit on `main`. Include
 its source, tests, owned semantic documentation, and materially changed status
@@ -90,11 +88,11 @@ history without explicit approval.
 
 For deployment work, a routine application-only release verifies a new immutable artifact, switches to it atomically, and guarantees the pre-cutover application release only through bounded health and postflight checks; it has no retention contract afterward and is not a maintained backup. Define recovery only for the infrastructure, configuration, secrets, persistent state, or irreversible surfaces the task actually touches, before changing them.
 
-Use the [version/compatibility policy](./docs/standards/versioning.md) to classify
-release changes. An incompatible signaling cutover forces old pages to reload
-and ends Browser capture; follow the public compatibility promise and include
-that interruption in the accepted cutover. Compatible UI/internal work does not
-require a wire bump.
+Use the [version policy](./docs/standards/versioning.md) to classify changes.
+One commit that changes a wire, control or capture contract updates the single
+identifier and every side of it together; there is no staged rollout for an
+older peer. Deploying and restarting a Server ends its live rooms and Browser
+captures; include that interruption in the accepted cutover.
 
 Clean up worktrees and branches only after semantic review and integration are complete and the normal merged-head, open-reference, clean-tree, and non-following link checks pass. Never merge an old branch wholesale after a newer truth checkpoint.
 
@@ -105,21 +103,17 @@ index; do not substitute a move for the rejected deletion.
 
 ## Research Standard
 
-The [engineering reference](./docs/standards/engineering.md) owns module and
+The [engineering reference](./docs/architecture/modules.md) owns module and
 interface discipline, including the post-change ablation pass.
-
-External citations in repository files must use publicly published, verifiable
-sources, such as documentation, open-source repositories, articles and websites.
-Interoperability guides and compatibility notes may name the relevant tools;
-retain required attribution and licenses.
 
 Follow the [naming convention](./docs/standards/naming.md) for product copy,
 commands, packages and code ownership. Keep display names separate from stable
 protocol identifiers; use normal language-specific identifier conventions.
 
+- External citations in repository files must use publicly published, verifiable sources: documentation, open-source repositories, articles or websites. Interoperability guides and compatibility notes may name the relevant tools; retain required attribution and licenses.
 - Prefer specifications, official product documentation, primary source code, maintainers' design notes, and original papers.
-- Use current community issues and operational reports to identify real compatibility failures, but label anecdotal evidence as such.
-- Include a date and direct URLs. Separate verified facts, measurements, assumptions, and recommendations.
+- Use current community issues and operational reports to identify real failures, but label anecdotal evidence as such.
+- Include a date and direct URLs when recording a measurement in verification status. Separate verified facts, measurements, assumptions, and recommendations.
 - Review licenses before copying implementation code. A useful reference is not automatically a compatible dependency.
 - Piik-owned code is [MIT-licensed](./LICENSE); third-party components retain
   their own licenses and notices. GPL/AGPL implementation sources remain
@@ -137,15 +131,16 @@ duplicating private internals into an adapter does not remove maintenance cost.
 Evaluate larger feature additions as dependency choices, rather than treating
 them as small fixes.
 
-The [dependency provenance](./internal/thirdparty/README.md) owns official
-baselines, retained patches and removal criteria. Review upstream when changing
-a patched dependency and before phase acceptance. Do not create a second patch
-inventory or edit shared package caches.
+No dependency is currently patched; the Rust workspace has no `[patch]` source.
+A retained patch records its official baseline, patch and removal criteria in
+one provenance file beside its source. Review upstream when changing a patched
+dependency and before phase acceptance. Do not create a second patch inventory
+or edit shared package caches.
 
 Prepare an update from the recorded base and patch head in a new directory:
 
 ```sh
-node scripts/sync-upstream.mjs --source <fork-url-or-local-clone> --upstream <official-url-or-local-clone> --base <official-base> --head <patch-head> --out build/upstream-candidate
+node scripts/utils/sync-upstream.mjs --source <fork-url-or-local-clone> --upstream <official-url-or-local-clone> --base <official-base> --head <patch-head> --out build/upstream-candidate
 ```
 
 The tool fetches official `HEAD` (or `--onto <ref>`) and replays the patch range.
@@ -165,39 +160,25 @@ Every retained test must be collected by a documented verification entry point.
 Confirm runner inclusion when adding or moving a test; a file's presence alone
 does not establish coverage.
 
-Use local incremental builds and scoped checks during iteration. Batch GitHub
-Actions at review and acceptance boundaries; reuse passing results for unchanged
-code instead of repeatedly running the full platform matrix for one candidate.
-
-- `npm run check` owns deterministic Web type-check, unit, and build acceptance.
-- `npm audit --audit-level=high` checks the locked Web/build dependencies for known high or critical advisories. It complements upstream release review; a clean database scan does not establish that no unpublished or newly disclosed fix exists.
-- `npm run check:go` owns Go formatting, unit tests, vet, Windows/Linux
-  builds, Darwin builds on macOS, and the current platform's capture compile/probe.
-  The server core is Go, so its acceptance runs here. It builds the Web UI first when
-  that output is missing, because both binaries embed it. CI invokes these same
-  package commands rather than rebuilding their steps in YAML.
-- `npm run check:go-core` runs the Go formatting, tests, vet and build stages
-  without platform capture/probing. Windows desktop input and global hotkey
-  acceptance are opt-in: set `PIIK_INPUT_GATE=1` when running
-  `go test ./internal/app/remoteinput` in an isolated desktop session.
-- `npm run check:go-race` checks port mapping, media forwarding, media-edge and native-control
-  ownership, loopback delivery, service storage shutdown and scoped NAT dependencies with Go's race detector. It
-  requires a supported cgo toolchain; CI runs it on Linux.
-- `npm run check:go-vuln` checks the App and Server entry points and their
-  dependencies against the Go vulnerability database. CI uses the Go version
-  declared in `go.mod`; update that owner for required toolchain security fixes.
-- `npm run check:native` runs only the current platform's capture compile/probe
-  and deterministic native regressions. The Linux App packaging job includes
-  its headless GStreamer output-profile and retirement test; this does not
-  establish physical screen/audio capture on that runner.
-  The macOS frame self-test additionally needs an available hardware H.264
-  encoder. A runner without one reports that check as skipped and still checks
-  compilation, capability/source responses and the packaged App's startup.
-- `npm run check:container -- <local-image> <full-SHA>` checks the Compose recipe
-  against a packaged native Linux image (amd64 or arm64): embedded Web, P2P/STUN, optional SFU
-  startup, room persistence across recreation, diagnostics and clean shutdown.
-  It requires Docker Compose v2 and available recipe ports on an isolated runner;
-  its temporary project and volumes are removed after the check.
+- `npm run check` runs every deterministic check in increasing cost, stopping at
+  the first failure: `check:web`, `check:docs`, `check:size`, `check:rust` and
+  `check:hygiene`. Use it before proposing a change.
+- `npm run check:web` owns deterministic Web type-check, unit tests and the
+  production build; `typecheck`, `test` and `build:web` remain available alone
+  while iterating. `npm audit --audit-level=high` is a release-time check of the
+  locked Web/build dependencies; it needs the registry, so it stays outside the
+  deterministic run and complements upstream release review.
+- `npm run check:rust` owns Rust formatting, Clippy (`-D warnings`), workspace
+  tests and the Windows capture compile/probe; `check:rust-core` skips the capture
+  step. It builds the Web UI first when that output is missing, because both
+  binaries embed it. When `cargo-audit` is installed it also checks `Cargo.lock`
+  against the RustSec advisory database.
+- `npm run check:docs`, `check:size` and `check:hygiene` own documentation links
+  and ownership, per-file size limits, and tracked paths plus whitespace.
+- `npm run check:native` runs only the Windows capture compile/probe and
+  deterministic native regressions. It needs MSVC and downloads its pinned
+  WebRTC SDK on first use; every shell can run it, because the helper script
+  names Windows' own `tar` rather than whichever one PATH resolves first.
 - `gate:*` commands are explicit physical or network acceptance. They must use
   isolated profiles, bounded deadlines, shared cleanup helpers, and a structured
   result. A manual diagnostic may locate a failure, but is not retained as pass
@@ -208,24 +189,18 @@ code instead of repeatedly running the full platform matrix for one candidate.
   `CHROME_PATH` and `PIIK_SERVER_EXE`; repeat with `PIIK_ROOM_VOICE_SFU=true`
   for embedded SFU. Requires `agent-browser` (or `AGENT_BROWSER_PATH`). Reports
   and screenshots stay under ignored `build/voice-integration`.
-- `gate:network-lab` runs the opt-in [controlled network laboratory](./docs/research/network-lab.md).
-  It requires a disposable Linux runner with namespace administration. Its own
-  routers contain all firewall and traffic-shaping changes; do not run it on a
-  production service or treat its model results as a public success rate.
-- `gate:media-lifecycle` reuses that laboratory's real Browser/App endpoints on
-  loopback for restart, replacement and P2P/SFU continuity. It needs Chrome and
-  current App/Server binaries, without namespace or firewall changes. Synthetic
-  capture keeps it separate from physical-device and real-NAT acceptance.
-- On Windows, execute App/Server and Go test binaries only from stable
-  project build paths. Go's temporary compiler/cache files are not firewall
-  identities; do not run network tests with a changing temporary executable
-  path. Keep browser profiles isolated and consider the active firewall when
+- `gate:app-local` needs `PIIK_CLIENT_LOCAL_GATE=true`, `CHROME_PATH`,
+  `PIIK_CLIENT_EXE` and `PIIK_CLIENT_GATE_LAN_ADDRESS` bound to an address this
+  machine actually holds; the App rejects an inactive LAN address, so a
+  documentation-only address only works for gates that rewrite the invitation.
+- On Windows, execute App/Server and Rust test binaries only from stable
+  project build paths (`target/`, `build/`); do not run network tests with a
+  changing temporary executable path. Keep browser profiles isolated and consider the active firewall when
   diagnosing connection failures rather than changing global firewall rules.
-- CI, versioning and release automation belong to complete, accepted squash
-  merges into `main`; ordinary branch pushes stay quiet. PRs run only the
-  lightweight public release-note check before merge. The
-  [versioning policy](./docs/standards/versioning.md) owns version selection,
-  publication and activation state. Package the merged SHA without writing
+- Versioning and release automation belong to complete, accepted squash
+  merges into `main`. The
+  [versioning policy](./docs/standards/versioning.md) owns version selection
+  and release authorization. Package the merged SHA without writing
   version-record commits back to `main`.
 
 ## Commit, PR And Branch Names
@@ -256,29 +231,16 @@ A pull request should explain the problem, the chosen design, verification perfo
 Before a product-changing integration PR is accepted, fill its exact `## Release notes` section
 with concise public copy in English followed by Chinese: user-visible changes,
 fixes and required upgrade actions. Use `###` for subsections. Review this text as product
-copy; it is published automatically from the squash commit, without PR discussion
-or verification logs. The [release-note policy](./docs/standards/versioning.md#release-notes)
-owns the optional editorial headline, aggregation and preview. Review the
-generated whole release and its website excerpt together before publication;
-keep at most one bilingual theme and make this update's actual changes easy to find.
-Do not add a changelog file or release-note archive.
-Standalone website, documentation and maintenance phases do not need product
+copy; the squash commit carries it without PR discussion or verification logs.
+The [release-note policy](./docs/standards/versioning.md#shipping) owns its
+structure. Do not add a changelog file or release-note archive.
+Standalone documentation and maintenance phases do not need product
 release notes; their public description stays in the PR.
 
 Durable semantic or current-snapshot changes must update their single owner in the same integration boundary. Ordinary implementation and bug fixes may be complete with code plus focused evidence.
 
-## Local Hooks
+## Repository Hygiene
 
-Install the tracked Git hooks once per clone:
-
-```sh
-sh scripts/install-hooks.sh
-```
-
-On native PowerShell, this equivalent is available:
-
-```powershell
-./scripts/install-hooks.ps1
-```
-
-The pre-commit hook runs the POSIX repository hygiene check. The PowerShell entry implements the same checks for native Windows use, and CI runs the POSIX entry. Both read the tracked path manifest in `scripts/required-project-paths.txt`; changes to checker behavior must update and verify both in the same pull request.
+Run `./scripts/checks/check-project-state.ps1` before committing. It reads the tracked
+path manifest in `scripts/required-project-paths.txt`; update it in the same pull request
+as checker behavior changes.

@@ -1,13 +1,13 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { createElement, Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { RoomAdmissionBadge } from "../src/client/components/living/RoomChip";
-import { HintComic, type HintKind } from "../src/client/components/living/hints";
-import type { Tooltip } from "../src/client/components/living/Tooltip";
+import { RoomAdmissionBadge } from "../src/client/ui/components/room/RoomChip";
+import { HintComic, type HintKind } from "../src/client/ui/components/hints";
+import type { Tooltip } from "../src/client/ui/components/shell/Tooltip";
 import { setCopy, t } from "../src/client/ui/copy";
 
 // Open the tooltip content for SSR; keep the actual badge, Pill and scene.
-vi.mock("../src/client/components/living/Tooltip", () => ({
+vi.mock("../src/client/ui/components/shell/Tooltip", () => ({
   Tooltip: ({ kind, tone, motion, children }: Parameters<typeof Tooltip>[0]) =>
     createElement(Fragment, null, children, createElement(HintComic, { kind: kind as HintKind, tone, motion })),
 }));

@@ -13,20 +13,19 @@ verification procedures stay in [CONTRIBUTING.md](../../CONTRIBUTING.md).
 | Universal constraints and navigation | `AGENTS.md` | Short mandatory boundaries and links; no procedure manual |
 | Reusable agent methods | `.agents/skills/*/SKILL.md` | Task triggers and methods under project constraints; link to domain rules and delivery rather than repeat them |
 | Branches, review, validation, PRs, releases and cleanup | `CONTRIBUTING.md` | Executable workflow |
-| Module boundaries, interface discipline and ablation | [Engineering](./engineering.md) | Module, contract, lifecycle and source navigation; shared coding rules |
+| Module boundaries, interface discipline and ablation | [Modules](../architecture/modules.md) | Module, contract, lifecycle and source navigation; shared coding rules |
 | Names, terminology and voice | [Naming and copy](./naming.md) | Product/tool names, role labels and Chinese/English writing conventions |
 | Translation contributions | [Translation guide](../guide/translating.md) and its Chinese counterpart | Catalog editing, new-language registration and translation review |
 | Illustration, palette, motion and accessible layout | [Visual language](./visual-language.md) | Shared Browser/App design grammar |
 | Status projection | [Media status](./media-status.md) | Which facts each display surface may express |
-| Release identity and compatibility | [Versioning](./versioning.md) | Version roles, protected interfaces and public-readiness boundary |
+| Build identity and interface changes | [Versioning](./versioning.md) | Numeric identifiers, what a change updates, and how a build ships |
 | Current product behavior | [Rooms](./rooms-access.md), [routing](./routing-transport.md), [media](./media-quality.md), [lifecycle](./presentation-lifecycle.md) | One owner per domain; promises, boundaries and non-obvious invariants |
-| Architecture decisions | `docs/adr/` | Decision status, rationale and consequences; explicitly supersede changed clauses |
-| Measurements and external evidence | `docs/research/` | Date, sources, observations, inference, limits and license scope |
-| Deployment and configuration | `docs/deployment.md`, `docs/operations/`, `docs/standards/configuration.md` | Runnable operator reference; no per-release diary |
+| System structure, protocols and technical reasons | `docs/architecture/` | Processes, modules, wire protocols and the reasons still shaping them; no decision history |
+| Self-hosting, release and configuration | `docs/operations/`, `docs/standards/configuration.md` | Runnable operator reference; no per-release diary |
 | Compact product map | `docs/project-memory.md` | Stable summaries and domain navigation, not implementation inventories |
 | Current execution/deployment index | `docs/status.md` | Current boundaries and pointers; exact artifact identity stays in release metadata |
 | Remaining work and decisions | `docs/todo.md` | One task ledger, with executable work separated from parked ideas |
-| Evidence boundaries | `docs/verification-status.md` | Compact limits that affect product claims; no duplicate retest ledger |
+| Evidence boundaries | `docs/verification-status.md` | Current limits that affect product claims, with the measurements behind them |
 | Completed history | Git commits and PRs | Changes and outcomes; do not reproduce them in memory or TODO |
 
 Source schemas and existing conformance fixtures own exact interface fields;
@@ -41,11 +40,8 @@ symptom-based checks to troubleshooting, and build/release procedures to maintai
 references. Remove repaired incident narratives instead of appending them to the
 reader's path; retain checks for current platform and network limitations.
 
-The public documentation website renders selected repository Markdown without
-owning another copy. Its [reader index](../guide/README.md) serves usage and support;
-the repository map remains the developer/maintainer entry. The
-[website runbook](../operations/website.md#documentation-build) owns generation and
-publication. General symptoms and report collection belong to the troubleshooting
+The [reader index](../guide/README.md) serves usage and support; the repository
+map remains the developer/maintainer entry. General symptoms and report collection belong to the troubleshooting
 guide; browser/network connection procedures belong to the network guide.
 Introductions and the general guide link to those procedures rather than duplicate them.
 
@@ -92,26 +88,25 @@ Preserve accepted contributors' authorship under [CONTRIBUTING](../../CONTRIBUTI
 Keep one owner per fact, with short summaries where navigation needs them.
 Consolidation is not concatenating documents into one giant manual. Remove
 stale procedures and duplicated prescriptions; preserve still-consumed behavior,
-failure boundaries, reasoning and reproducible evidence. An ADR can retain a
-historical decision when its superseded status is clear.
+failure boundaries, reasoning and reproducible evidence. When a decision changes,
+rewrite the current rule in place; the reasoning it replaced stays in Git.
 
-Document cost is part of [engineering ablation](./engineering.md#ablation-and-review).
+Document cost is part of [engineering ablation](../architecture/modules.md).
 Do not delete a product promise solely to shrink a file. Archive completed work
 in Git, keep candidate ideas out of active instructions, and never promote an
 agent suggestion to accepted policy simply by writing it in a checklist.
 
 The top-level context stays a map. Directory-specific instructions belong near
 the code only when that module exists and the rule is needed every time.
-The [context-governance research](../research/agent-context-governance.md) owns
-the external rationale; the existing hygiene scripts own executable limits.
-Their gardening warnings invite review, not arbitrary compression; hard failures
-for broken links, required owners and instruction-loading limits remain binding.
+The existing hygiene scripts own executable limits. Their gardening warnings
+invite review, not arbitrary compression; hard failures for broken links,
+required owners and instruction-loading limits remain binding.
 
 ## Agent Instructions And Skills
 
 Keep broadly applicable project constraints near the top of `AGENTS.md`, with
 explicit task triggers for required skills. Domain standards define accepted
-behavior; skills explain how to do a recurring kind of work. Neither research
+behavior; skills explain how to do a recurring kind of work. Neither reference
 examples nor skill defaults can expand user authorization or replace a domain
 decision. Use repo-linked adaptations when a global skill has the same name;
 names alone do not establish which instructions were loaded.
@@ -136,7 +131,7 @@ or hooks without a demonstrated recurring need.
 
 For documentation work use the existing link, whitespace and repository-hygiene
 checks; do not rerun unrelated media benchmarks. The shared
-[`required-project-paths.txt`](../../scripts/required-project-paths.txt) lists durable
+[`required-project-paths.txt`](../../scripts/checks/required-project-paths.txt) lists durable
 owners for both hygiene entry points. No additional checker is needed for each
 new convention.
 

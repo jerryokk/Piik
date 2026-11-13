@@ -3,7 +3,8 @@
 Explicit Windows experiment, not a product dependency or CI job. Two real
 libwebrtc VideoStreamEncoders consume one synthetic 640x360 source through
 independent stock VideoAdapters. It does not capture the desktop or open ports.
-[Research and evidence](../../../docs/research/webrtc-encoder-pool.md) own conclusions.
+It is a feasibility probe only; its conclusions inform [media pipeline](../../../docs/architecture/media.md)
+and [verification status](../../../docs/verification-status.md), not the product.
 
 Use Shiguredo `m152.7977.0.2` Windows x64 SDK (WebRTC commit
 `6f37672d358475cd17544121a12494da454d85fb`), matching its headers and static library:
@@ -74,26 +75,12 @@ separately in Chrome. The existing `scripts/encoded-group-decode.mjs` accepts
 `PIIK_ENCODED_CODEC=avc1.42c033` and `PIIK_ENCODED_OUTPUT` pointing to two
 arrays of `{Index, Width, Height, PTS, Recovery, Data}` frames (nanosecond PTS,
 base64 Annex-B data). A repeated export in those two arrays proves decoding of
-that bitstream, not two Pion transports or weak-budget/resource adaptation.
+that bitstream, not two WebRTC transports or weak-budget/resource adaptation.
 
 ## Healthy Relay Chain
 
-Export the first 180 real AUs from sender A for the opt-in Go forwarding check:
-
-```powershell
-& ./build/encoder-pool/probe/Release/encoder-pool-probe.exe `
-  --pooled --group-adjuster --healthy-only --export build/encoder-pool/chain-input.jsonl
-go test -c -o build/embedded-media/mediaedge.test.exe ./internal/app/mediaedge
-$env:PIIK_POOL_CHAIN_FIXTURE = "$PWD/build/encoder-pool/chain-input.jsonl"
-$env:PIIK_NATIVE_CAPTURE = "$PWD/build/go-check/piik-capture.exe"
-$env:PIIK_POOL_CHAIN_OUTPUT = "$PWD/build/encoder-pool/chain-result.json"
-& ./build/embedded-media/mediaedge.test.exe `
-  '-test.run=^TestRelayChainEncodedFixture$' '-test.v' '-test.timeout=30s'
-```
-
-The real capture executable must already be built, so Native relay capability
-remains enabled while checking that healthy forwarding does not start it. This
-replays encoded video through two Native receivers and three leaves, checking
-recovery-first, contiguous, hash-identical AUs and closure. No frame payload is
-committed. Optional output contains only the synthetic trace's summary. It is
-not a live encoder/BWE integration or an internet/NAT test.
+The probe's `--pooled --group-adjuster --healthy-only --export <jsonl>` mode
+exports the first 180 real AUs from sender A. Its consumer was the Go
+`TestRelayChainEncodedFixture` (two Native receivers and three leaves checking
+recovery-first, contiguous, hash-identical AUs), removed with the Go tree; the
+Rust media edge has no port of that replay yet. No frame payload is committed.

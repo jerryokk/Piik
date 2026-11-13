@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { initialLanguage, rememberLanguage } from "../site/assets/language.js";
 import { locales, visualTitleFrames } from "../src/client/locales";
 
 import {
@@ -190,42 +189,5 @@ describe("copy catalog", () => {
     expect(documentElement.lang).toBe("en");
     setCopy({ lang: "zh" });
     expect(documentElement.lang).toBe("zh-CN");
-  });
-});
-
-describe("website language", () => {
-  afterEach(() => vi.unstubAllGlobals());
-
-  it.each([
-    ["zh-CN", null, "", "zh-CN"],
-    ["zh-TW", null, "", "zh-CN"],
-    ["zh-HK", null, "", "zh-CN"],
-    ["zh-SG", null, "", "zh-CN"],
-    ["zh-Hans", null, "", "zh-CN"],
-    ["zh-Hant", null, "", "zh-CN"],
-    ["zh-Hant-HK", null, "", "zh-CN"],
-    ["en-US", null, "", "en"],
-    ["ja-JP", null, "", "en"],
-    ["ja-JP", "zh-CN", "", "zh-CN"],
-    ["zh-CN", "zh-CN", "?lang=en", "en"],
-  ])("resolves system, saved and linked language: %s/%s/%s", (language, saved, search, expected) => {
-    vi.stubGlobal("navigator", { language });
-    vi.stubGlobal("location", { search });
-    vi.stubGlobal("localStorage", { getItem: () => saved });
-    expect(initialLanguage()).toBe(expected);
-  });
-
-  it("uses the system default when storage is unavailable", () => {
-    vi.stubGlobal("navigator", { language: "zh-CN" });
-    vi.stubGlobal("location", new URL("https://example.test/?preview=1#download"));
-    const replaceState = vi.fn();
-    vi.stubGlobal("history", { state: null, replaceState });
-    vi.stubGlobal("localStorage", {
-      getItem: () => { throw new Error("blocked"); },
-      setItem: () => { throw new Error("blocked"); },
-    });
-    expect(initialLanguage()).toBe("zh-CN");
-    expect(() => rememberLanguage("en")).not.toThrow();
-    expect(String(replaceState.mock.calls[0]?.[2])).toBe("https://example.test/?preview=1&lang=en#download");
   });
 });

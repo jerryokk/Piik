@@ -3,11 +3,10 @@
 [中文](./translating.zh-CN.md) · [Contributing](../../CONTRIBUTING.md)
 
 Piik includes Simplified Chinese and English. Suggest wording, correct a
-translation or add a language through GitHub issues and pull requests.
+translation or add a language through a suggestion or a patch.
 
-For a wording suggestion, [open an issue](https://github.com/TNTcraftHIM/Piik/issues/new/choose)
-with the language, page/control, current text, proposed text and reason. Include
-a screenshot or steps to reach it; remove private invitations, passwords and
+For a wording suggestion, send whoever provides your Piik the language,
+page/control, current text, proposed text and reason. Include a screenshot or steps to reach it; remove private invitations, passwords and
 personal content. You can send a suggestion without setting up development tools.
 
 ## Make your first correction
@@ -15,9 +14,8 @@ personal content. You can send a suggestion without setting up development tools
 1. Try the affected screen and read the nearby controls. Check both existing
    languages when helpful; the [terminology and voice guide](../standards/naming.md#voice-and-terminology)
    owns names and writing style.
-2. Fork Piik and work on a branch from current `main`, following
-   [Contributing](../../CONTRIBUTING.md#lean-workflow). Small text edits can also
-   be proposed through GitHub's file editor.
+2. Work on a branch from current `main`, following
+   [Contributing](../../CONTRIBUTING.md#lean-workflow).
 3. Find the text in the files below. In a locale file, change the string value
    after the colon. Keep the key and its placeholders. Search the key in the
    source to see where it appears; for example:
@@ -37,19 +35,13 @@ personal content. You can send a suggestion without setting up development tools
 | Surface | Editable source |
 | --- | --- |
 | App launcher and shared Browser/App UI, including tooltips and accessible labels | [English](../../src/client/locales/en.ts), [Chinese](../../src/client/locales/zh.ts) |
-| Welcome lines, waiting captions and changing browser-tab titles | The `enPlayful` / `zhPlayful` pools and title-frame catalogs in those same files; website welcome lines reuse these pools |
-| Website | [Page markup](../../site/index.html) and [interactive labels](../../site/main.js); text is paired by `en` and `zh-CN` |
-| Introduction film | [Film sources](../../site/film/README.md); captions, artwork and playback labels have their own bilingual text |
-| App console window | `consoleCopy` in [console.go](../../internal/app/console.go); entries are ordered English, Chinese, visual; retain the third slot even when empty |
+| Welcome lines, waiting captions and changing browser-tab titles | The `enPlayful` / `zhPlayful` pools and title-frame catalogs in those same files |
 | README and entry guides | [README pair](../../README.md), [documentation home](./README.md), [getting started](./getting-started.md), [troubleshooting](./troubleshooting.md) and [self-hosting](../operations/self-hosting.md), each with a `.zh-CN.md` counterpart |
 
 Edit the source, then rebuild the surface that serves it:
 
 - **App/Server UI:** catalogs are bundled with the web assets. Publish the updated
   App or Server; a remote site's UI comes from that Server.
-- **Website/film:** use the [website workflow](../operations/website.md).
-- **Guides:** the documentation website renders repository Markdown at its next
-  publication. Navigation and search labels live in `site/docs/`.
 
 Update related guides when a control's name changes. Technical references keep
 one shared version under [documentation ownership](../standards/documentation.md).
@@ -63,8 +55,8 @@ claims. A cultural reference should still make sense to someone unfamiliar with 
 Machine-assisted drafts need proofreading by someone who understands the language
 and the screen; raise unclear source text in the PR instead of guessing.
 
-For App startup failures, translate the launcher and console explanations
-together. Keep their shared reason codes and raw technical details unchanged.
+For App startup failures, translate the launcher explanations. Keep their
+shared reason codes and raw technical details unchanged.
 
 Locale files are TypeScript objects. These are existing examples:
 
@@ -82,14 +74,14 @@ composition, describe the needed change in the PR so the caller and formatter
 can be updated together.
 
 Keep quotes, escapes and commas valid. Preserve commands, config keys, URLs,
-download filenames and format markers such as `%s` in Go console text. Translate
+download filenames and format markers such as `%s`. Translate
 link labels and image descriptions; repair internal anchors when translating
 Markdown headings. Keep legal license text and third-party notices intact.
 
 ## Add a language
 
-Search existing issues and PRs for the language first. For a larger translation,
-start an issue with its language tag, intended coverage and any terminology or
+Ask the maintainers whether the language is already in progress. For a larger
+translation, first share its language tag, intended coverage and any terminology or
 layout questions, so contributors can coordinate work and review.
 
 1. Copy `src/client/locales/en.ts` to a file such as `fr.ts`. Translate the
@@ -113,12 +105,11 @@ layout questions, so contributors can coordinate work and review.
    Extra languages appear in a shared dropdown after visual mode. Check language
    selection, saved preferences and App handoff against the
    [system-language policy](../standards/presentation-lifecycle.md#visual-language).
-3. Check complete screens and the launch flow. New UI languages use English in
-   the App console until its own translation is added. Console additions also
-   require updating the launcher and loopback accepted-language checks together;
-   use the [App module map](../standards/engineering.md#module-map).
-4. State coverage in the PR. Website, film and documentation translations can be
-   contributed separately; update their language controls when adding a language.
+3. Check complete screens and the launch flow. New languages also require
+   updating the launcher and loopback accepted-language checks together;
+   use the [App module map](../architecture/modules.md#crate-map).
+4. State coverage in the PR. UI and documentation translations can be contributed
+   separately; update their language controls when adding a language.
    For right-to-left scripts, implement and check text direction and layout.
 
 Translate visual-mode labels and explanations in the normal catalog; keep that
@@ -148,8 +139,7 @@ and statements that invent progress, success or remaining time.
 Timing follows the [playful-copy lifecycle](../standards/visual-language.md#playful-copy-lifecycle).
 Preview welcome text and its cipher at
 `/__tooltip-preview`; use `/__status-preview` for waiting captions and titles.
-Check both narrow windows and language changes. The website's build picks up
-welcome edits automatically; its other copy remains separate.
+Check both narrow windows and language changes.
 
 ## Preview and check
 
@@ -174,9 +164,8 @@ For new languages, also check a reload, App launch, switching back to English,
 and the optional visual mode. Keep meaningful phrases together instead of adding
 spaces or hard line breaks to force one desktop layout.
 
-Website and film changes use the [website preview](../operations/website.md#preview).
-For Markdown changes, run `node scripts/check-docs.mjs` after staging new files,
-then review GitHub's rendered Markdown and translated links. Additional checks
+For Markdown changes, run `node scripts/checks/check-docs.mjs` after staging new files,
+then review the rendered Markdown and translated links. Additional checks
 for code changes follow [Contributing](../../CONTRIBUTING.md#verification-entrypoints).
 
 ## Further reading

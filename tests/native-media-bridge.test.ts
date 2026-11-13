@@ -58,7 +58,6 @@ class FakePeerConnection extends EventTarget {
   });
 
   emitTrack(track: MediaStreamTrack): void {
-    if (!track.addEventListener) track.addEventListener = vi.fn();
     this.dispatchEvent(Object.assign(new Event("track"), { track }));
   }
 
@@ -371,39 +370,33 @@ describe("native media bridge", () => {
     );
   });
 
-  it.each(["edge-closed", "track-ended"])("retires only the active native preview on %s once", async reason => {
+  it("retires an actively closed native edge once", async () => {
     const current = fixture();
     const starting = current.bridge.start();
     await vi.waitFor(() => {
       expect(current.peer().setLocalDescription).toHaveBeenCalledOnce();
     });
-    const video = Object.assign(new EventTarget(), {
+    current.peer().emitTrack({
       kind: "video",
       stop: vi.fn(),
-    });
-    current.peer().emitTrack(video as unknown as MediaStreamTrack);
+    } as unknown as MediaStreamTrack);
     current.peer().setState("connected");
     await starting;
 
-    if (reason === "track-ended") {
-      video.dispatchEvent(new Event("ended"));
-      video.dispatchEvent(new Event("ended"));
-    } else {
-      current.emit({
-        version: 10,
-        type: "edge-state",
-        shareId: "share_123456",
-        connectionId: current.bridge.connectionId,
-        state: "closed",
-      });
-      current.emit({
-        version: 10,
-        type: "edge-state",
-        shareId: "share_123456",
-        connectionId: current.bridge.connectionId,
-        state: "closed",
-      });
-    }
+    current.emit({
+      version: 10,
+      type: "edge-state",
+      shareId: "share_123456",
+      connectionId: current.bridge.connectionId,
+      state: "closed",
+    });
+    current.emit({
+      version: 10,
+      type: "edge-state",
+      shareId: "share_123456",
+      connectionId: current.bridge.connectionId,
+      state: "closed",
+    });
 
     expect(current.onFailed).toHaveBeenCalledOnce();
     expect(current.peer().close).toHaveBeenCalledOnce();

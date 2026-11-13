@@ -5,7 +5,7 @@ Use the brand for people and predictable lowercase identifiers for tools.
 
 ## Voice And Terminology
 
-Use the same role and action vocabulary in the App, Browser, website and guides.
+Use the same role and action vocabulary in the App, Browser and guides.
 Role labels describe permission; a person's chosen nickname stays unchanged.
 
 | Meaning | English | Chinese |
@@ -23,10 +23,9 @@ The browser picker names a capture method, not a browser-tab-only source. Its
 short explanation includes screens, application windows and tabs; available
 choices remain owned by the browser and operating system.
 
-Public architecture labels use `x64` and `ARM64`. Keep package and ABI identifiers
-such as `amd64`, `x86_64` and `arm64-v8a` unchanged in filenames and technical
-instructions. Present package format (APK/ZIP) and system requirements separately
-from architecture; a universal APK contains multiple supported architectures.
+Public architecture labels use `x64`. Keep package identifiers such as `amd64`
+unchanged in filenames and technical instructions. Present package format (ZIP)
+and system requirements separately from architecture.
 
 Write each language for its own audience. Chinese headings and welcomes may
 sound like friends inviting each other: “叫朋友来一起看。” or “沙发给你留着呢。”
@@ -38,8 +37,7 @@ The brand line is “Share the good stuff.” in English and “来，看点好�
 Chinese. Display the Chinese headline on two lines: “来，看点” / “好康的。”
 Keep metadata and ordinary prose as the continuous sentence.
 
-Keep the public brand line consistent in the homepage, film ending and README
-opening, beside a plain screen-sharing description. Scene titles should name
+Keep the public brand line consistent in the README opening, beside a plain screen-sharing description. Scene titles should name
 the action or benefit; do not turn every section into another slogan. Games, drawings, photos and
 movie nights show the range of screen sharing. Scenes may demonstrate room
 voice and attended remote control when they show the required participation and
@@ -51,14 +49,13 @@ Set the register by the reader's task:
 
 | Surface | Register |
 | --- | --- |
-| Website | Light, everyday language in introductions and illustration captions; keep the current restraint |
 | App and Web controls | Direct feature and action names, including panel titles and settings; “聊天” / “Chat” rather than an invitation or joke |
 | README | A friendly introduction, followed by direct explanations of features, limits and first steps |
 | Documentation index | Clear topic names and short descriptions that help readers choose a guide |
 | Deployment, configuration and maintenance guides | Formal, precise instructions: prerequisites, actions, expected results and recovery steps |
 
 Formal means clear and factual, not bureaucratic. Keep detailed procedures free
-of jokes and promotional slogans; do not carry the website's playful headings
+of jokes and promotional slogans; do not carry an introduction's playful headings
 into technical instructions.
 
 State the requirement, action or result directly. Omit negative comparisons that
@@ -75,17 +72,13 @@ are optional. Keep App and Server package names distinguishable at download link
 Public platform notes say what has been tested and invite useful feedback;
 internal phrases such as “this phase's acceptance target” belong in status.
 
-Present the public online site as a usable entry for real rooms and sharing.
-Offer the App download first and direct browser use alongside it; keep the
-site's P2P-only deployment conditions in its detailed guide.
-
-Use progressive disclosure on the website and in the film:
+Use progressive disclosure in introductions and guides:
 
 | Information layer | Reader's question | Content |
 | --- | --- | --- |
-| First view: navigation, headings, feature cards, film titles | What does it do, how do I start, what does it cost? | Familiar actions and concrete benefits: “开箱即用”, “免费使用”, “朋友点开就能看” |
+| First view: README opening, headings and feature summaries | What does it do, how do I start, what does it cost? | Familiar actions and concrete benefits: “开箱即用”, “免费使用”, “朋友点开就能看” |
 | Expanded details, supporting text and FAQ answers | Will this work for me, and why? | Platform/network conditions, explained technical terms and links to the relevant guide |
-| README, wiki and operational guides | How do I configure, verify or troubleshoot it? | Exact action names, prerequisites, commands, configuration and evidence limits |
+| Detailed README sections and operational guides | How do I configure, verify or troubleshoot it? | Exact action names, prerequisites, commands, configuration and evidence limits |
 
 The layer follows the reader's task, not font size alone. Keep material costs,
 availability and limitations beside the claim or action they qualify; do not
@@ -141,30 +134,27 @@ The [visual language](./visual-language.md) owns where these lines appear.
 
 | Surface | Convention | Example |
 | --- | --- | --- |
-| Product and repository | `Piik` | `TNTcraftHIM/Piik` |
+| Product | `Piik` | Documentation, copy, package names |
 | Standalone application | `Piik App` | Window title, documentation, shortcuts |
 | Hosted service in prose | `Piik Server` | Deployment instructions |
-| Executables and command directories | Lowercase, hyphen-separated | `piik-app[.exe]`, `piik-server[.exe]`, `cmd/piik-app` |
+| Executables and command directories | Lowercase, hyphen-separated | `piik-app[.exe]`, `piik-server[.exe]`, `crates/piik-app` |
 | Native capture executable | Lowercase component name | `piik-capture[.exe]` |
 | App download archives | Lowercase, fixed target name within each release | `piik-app-windows-amd64.zip` |
 | Package/build directory names | Lowercase and target suffix | `piik-app-windows-amd64` |
-| macOS application bundle | Display name, standard extension | `Piik App.app` |
-| Linux desktop entry | Lowercase file/Exec, display Name | `piik-app.desktop`, `Exec=piik-app`, `Name=Piik App` |
-| Package and service identifiers | Lowercase | npm `piik`, systemd `piik.service`, `tv.piik.app` |
+| Package identifiers | Lowercase | npm `piik` |
 | Environment variables | Uppercase snake case | `PIIK_DEBUG`, `PIIK_LOG_DIR` |
-| Go module path | Exact repository spelling | `github.com/TNTcraftHIM/Piik` |
+| Rust crates | Lowercase, hyphen-separated `piik-` prefix; one crate per owner | `piik-route`, `piik-media-edge` |
 
-Use the same lowercase binary names across platforms for predictable commands.
-`Piik App.app` is the user-facing macOS bundle. The packager owns archive contents
-and directory layout.
-Keep platform/standard spellings such as `Info.plist`, `LICENSE`, `README.md`
+Use lowercase binary names for predictable commands. The packager owns archive
+contents and directory layout.
+Keep standard spellings such as `LICENSE`, `README.md`
 and `REVISION`. Do not change third-party names or notices to fit this table.
 Immutable measurement records keep the paths and hashes of their measured
 revision; they are evidence rather than current command examples.
 
 ## Code ownership and vocabulary
 
-The [engineering module map](./engineering.md#module-map) owns directory
+The [engineering module map](../architecture/modules.md#crate-map) owns directory
 responsibilities. HTTP/WebSocket clients, signaling `clientId`, protocol clients
 and similar connection roles remain `client`; they do not name the standalone App.
 
@@ -172,11 +162,12 @@ Build commands, workflow jobs, packaging helpers, messages and local variables
 that mean the standalone executable use `App`; hosted packages use `Server`,
 and browser assets use `Web` or `Browser UI`. Follow the subject through its
 callers before renaming an ambiguous `client` or `application`. Public storage,
-wire and environment identifiers retain their compatibility contract; list
-those exceptions at their owner instead of globally replacing the word.
+wire and environment identifiers keep their established spelling and exact-match
+contract; list those exceptions at their owner instead of globally replacing the
+word.
 
-- Follow each language's semantics: lowercase Go packages, exported `PascalCase`
-  and unexported `camelCase`; existing TypeScript component/type conventions.
+- Follow each language's semantics: Rust `snake_case` modules and functions and
+  `UpperCamelCase` types; existing TypeScript component/type conventions.
   Brand casing must not change visibility or create unnecessary name prefixes.
 
 Renaming the standalone product is not a protocol or persistence change.
@@ -196,10 +187,7 @@ examples above are Piik's application of those principles.
 puts clarity before concision and character; this also guides the balance
 between Piik's playful introductions and factual instructions.
 
-Reviewed 2026-09-10. Desktop standards explicitly separate display names from
-executable identifiers; lowercase executable names are our portability convention.
+Reviewed 2026-09-10. Display names stay separate from executable identifiers;
+lowercase executable names are our command convention.
 
-- [freedesktop desktop entries](https://specifications.freedesktop.org/desktop-entry/latest/recognized-keys.html): `Name`, `Exec`, `TryExec` and `Icon` are distinct fields.
-- [Apple bundle keys](https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html): `CFBundleDisplayName` and `CFBundleExecutable` have different responsibilities.
-- [Syncthing desktop entry](https://github.com/syncthing/syncthing/blob/main/etc/linux-desktop/syncthing-start.desktop): a mature cross-platform example of display branding and lowercase commands.
-- [Effective Go naming](https://go.dev/doc/effective_go#names): package and identifier casing carries language conventions and visibility semantics.
+- [Rust API naming guidelines](https://rust-lang.github.io/api-guidelines/naming.html): crate, module and identifier casing carries language conventions.

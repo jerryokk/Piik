@@ -1,0 +1,16 @@
+[package]
+name = "piik-encoded"
+description = "Shared encoded-video primitives: access-unit bounds, RTP packetization and H.264 profile recognition."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hex.workspace = true
+rand.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

@@ -30,56 +30,18 @@ symptom's simple checks have failed. Change one thing at a time.
 
 ## Opening App and joining a room
 
-[Startup](#app-startup-fails-or-no-page-opens) · [Android installation](#android-apk-will-not-install) · [macOS](#macos-blocks-first-launch) ·
+[Startup](#app-startup-fails-or-no-page-opens) ·
 [Public invite / 1033](#public-invitation-fails-or-shows-1033) · [Local invitation](#local-invitation-will-not-open) ·
 [Local certificate](#local-https-certificate-warning) · [Room code](#room-code-does-not-work) · [Room creation 403](#room-creation-returns-403)
 
 ### App startup fails, or no page opens
 
-1. Read the reason on the launch page and in the terminal. If the App is still
-   running, copy its displayed address into your browser.
+1. Read the reason in the App window. If another Piik App is already running,
+   starting it again focuses that window.
 2. If Local mode lists several addresses, choose the adapter and IP that friends
    can reach. See [Local invitation checks](#local-invitation-will-not-open).
 3. If startup still fails, retry with **Debug launch** enabled and save the complete
    error and an [App report](#reporting-a-problem).
-
-### Android APK will not install
-
-Download the APK from the [App installation steps](./getting-started.md#share-with-piik-app).
-If Android asks, allow this browser or file manager to install the downloaded APK.
-
-If installation reports a conflicting package or signature and you previously
-installed a test build, uninstall that test App before installing the official
-APK. The test build and official release use different signing keys. Uninstalling
-clears App settings, including approved sites and the starred startup site;
-browser settings are stored separately. Later official updates can be installed
-over the existing official App.
-
-### macOS blocks first launch
-
-Current Mac builds are not Developer ID-signed or notarized by Apple. For
-first-launch warnings, verify the download and allow this App through macOS:
-
-If macOS reports malware, says the App will damage your computer, or moves it
-to Trash automatically, [report the exact alert and download link](#reporting-a-problem).
-Do not use the quarantine command below for those alerts.
-
-1. Download the matching Mac ZIP from the project's Releases and compare its
-   SHA-256 with the checksum published for that release. In Terminal, run
-   `shasum -a256 ~/Downloads/piik-app-darwin-arm64.zip` (use `darwin-amd64` on Intel).
-   If it differs, download again rather than bypassing the warning.
-2. Move the complete `Piik App.app` to Applications. Try opening it, then check
-   **System Settings → Privacy & Security → Open Anyway**, as described in
-   [Apple's first-launch guidance](https://support.apple.com/102445).
-3. If **Open Anyway** is unavailable and the official ZIP's checksum matches,
-   you can remove the download quarantine from this App only, then reopen it:
-
-   ```sh
-   xattr -dr com.apple.quarantine "/Applications/Piik App.app"
-   ```
-
-Use the App's actual path if you kept it elsewhere. Keep system-wide security
-checks enabled.
 
 ### Public invitation fails or shows 1033
 
@@ -92,7 +54,7 @@ connecting` or `exit status 1`, read the following error details to choose a che
    and the computer is awake, then send the current invitation. Use a new link
    after the App restarts; the old address may no longer work.
 2. **Hosts: read the failure details.** Check that the complete App package was
-   extracted. Save the full error from the launch page or terminal, including
+   extracted. Save the full error from the App window, including
    any detail after the exit code, and try again with **Debug launch**
    enabled.
 3. **Compare networks.** Try a phone hotspot. Check whether DNS, a proxy or a
@@ -119,11 +81,10 @@ for the requirements. You do not need to open an inbound port on your router.
 
 </details>
 
-**To continue without a public invite:** keep App running, open
-[Piik online](https://demo.piik.tv) or another reachable site, and
-[authorize App capture](./getting-started.md#use-app-with-an-existing-site).
-Send the new site's room invitation. Piik online needs no site passphrase and
-uses P2P media; for server media forwarding, choose an SFU-enabled site.
+**To continue without a public invite:** use **Local room** when friends can
+reach your computer, or open another reachable self-hosted site in the App
+and [authorize App capture](./getting-started.md#use-app-with-an-existing-site).
+Send the new room invitation. For server media forwarding, choose an SFU-enabled site.
 If the page opens but video does not connect, follow
 [media connection troubleshooting](#when-video-will-not-connect).
 If the unavailable address is a self-hosted site rather than the App's
@@ -161,7 +122,7 @@ therefore shows a certificate warning before opening the invitation.
 
 1. Check that the address is the one the Host intended to share.
 2. Open the warning's certificate details and compare its **SHA-256 fingerprint**
-   with **Local certificate · SHA-256** in the Host's App terminal, or the
+   with **Local certificate · SHA-256** in the Host's App window, or the
    Server's **HTTPS certificate** startup message. Ask the Host over your usual
    trusted chat if you are on another device.
 3. If it matches, use the browser's **Advanced → Continue** option where available.
@@ -196,8 +157,7 @@ even when the page opens normally. The site administrator should:
 2. Unset or empty `ALLOWED_ORIGINS` to use that address. If several addresses are
    needed, list every trusted origin explicitly, separated by commas. Check for
    an old `http://localhost:8787` override after copying a configuration example.
-3. Restart Piik (recreate the container with `docker compose up -d` for Compose),
-   reload the page and retry.
+3. Restart Piik, reload the page and retry.
 
 If the response says `Origin not allowed` with correct settings, check that the
 reverse proxy preserves the browser's `Origin` header. A 403 from the proxy or
@@ -235,7 +195,7 @@ The source picker distinguishes these outcomes:
 | Message | Next step |
 | --- | --- |
 | Cannot connect to Piik App | Confirm the App is running and this site is approved. Close unused Piik tabs using the App, then refresh the list; up to two pages can use the App's native capture or viewing at once. |
-| Piik App and this page are incompatible | Update Piik App and reload the page. |
+| Piik App and this page are incompatible | Open the page from the running App, or restart the App if the page came from it. |
 | Piik App capture is currently unavailable | Check the App diagnostics for capture or encoder availability. Review your encoding setting or use browser capture. |
 | Could not read the screen and window list | Refresh to retry. If it keeps failing, export both the App and browser Debug reports. |
 | No sources available | The list was read successfully, but this tab has no selectable sources. Check the other source tabs. |
@@ -356,7 +316,8 @@ or temporarily turn off HDR in Windows display settings and select the source ag
 Higher resolution or bitrate cannot restore clipped highlights.
 
 If it persists, report the HDR setting and GPU/display model with source/viewer
-comparison pictures. See [HDR capture notes](../research/media-fidelity.md#hdr-to-sdr) for background.
+comparison pictures. Piik converts HDR to SDR once at capture; it does not send
+end-to-end HDR, so very bright detail can still clip.
 
 ### Yellow capture border on Windows
 
@@ -420,8 +381,8 @@ for current setup details.
   landscape, or use **Switch picture fit** on the playback bar to select **Fill**
   or **Stretch**. Exit the browser's native video player to use Piik's picture-fit
   controls. See [viewing controls](./getting-started.md#join-a-friends-room).
-- **Sharing stops after sleep or suspension:** wake the device and return to the
-  sharing tab. Start sharing again if needed; browser and OS suspension can
+- **Sharing stops after sleep or suspension:** wake the device and return to
+  Piik. Start sharing again if needed; browser and OS suspension can
   interrupt capture or playback.
 
 ## Sound and browser permissions
@@ -437,12 +398,6 @@ for current setup details.
 3. Camera video and microphone inputs are selected separately. For a built-in
    camera microphone or OBS audio, see [camera and audio inputs](./sharing.md#cameras-and-virtual-audio-inputs).
 
-With a virtual mixer or several output devices, check where the app sends its
-sound. Without application exclusion, Windows App screen capture reads the
-default playback device. Select the app's window to capture its process audio,
-or route its sound to that default
-device before restarting screen sharing.
-
 ### Cannot hear someone speaking
 
 For speech added through **Include my microphone**, check the picture's
@@ -457,7 +412,7 @@ For room voice, follow these steps:
    are separate from video mute; **Pause listening** leaves your microphone on.
 
 If voice reports a connection failure, compare [WebRTC settings](./network.md#browser-webrtc-restrictions)
-and another network. See [room voice](./room-tools.md#room-voice) for its controls.
+and another network. See [room voice](./chat-and-voice.md#room-voice) for its controls.
 
 ### Echo or unwanted application audio
 
@@ -480,10 +435,8 @@ window audio. Piik's microphone mute does not mute that separate source.
 2. For a microphone, review this site's browser permission and selected input.
 3. For remote control, update the Host's App and the site, then refresh the Viewer
    page. The Host must use desktop App window/screen capture and enable control;
-   Browser and camera capture cannot receive remote input. Android can share its
-   screen and control a desktop as a Viewer, but cannot receive remote control;
-   its Host page therefore has no enable-control action. Follow the
-   [authorization steps](./room-tools.md#let-a-friend-control-your-shared-screen).
+   Browser and camera capture cannot receive remote input. Follow the
+   [authorization steps](./chat-and-voice.md#let-a-friend-control-your-shared-screen).
 
 If your browser cannot accept the local certificate, use a reachable **Public
 invite** or an HTTPS site with a trusted certificate.
@@ -493,14 +446,15 @@ invite** or an HTTPS site with a trusted certificate.
 ### The gamepad does not respond
 
 1. The Host shares an App window or screen and enables **Remote control**.
-2. Check the Host against [supported platforms and gamepad setup](./remote-control.md#gamepads).
+2. Check the Host's [gamepad setup](./remote-control.md#gamepads).
    The Host installs external drivers from the official source; Piik includes no
    input SDK or driver. Turn Remote control off and on after installation.
 3. The Viewer connects a standard-layout controller and presses a button so the
-   browser detects it, then obtains remote control. Piik automatically uses the
-   first connected controller with the browser's standard mapping. Keep the viewing
-   page focused and join the corresponding player in the game. If all controller
-   slots are occupied, disconnect an unused controller or end that Viewer's remote control.
+   browser detects it, then obtains remote control. Piik uses every connected
+   controller with the browser's standard mapping, one virtual device each. Keep
+   the viewing page focused and join the corresponding player in the game. If all
+   controller slots are occupied, disconnect an unused controller or end that
+   Viewer's remote control.
 
 Viewers only need their browser. Driver checks and installation belong on the Host.
 
@@ -522,8 +476,7 @@ Read discovery logs or check a router you manage. [View steps](./network.md#stun
 
 ### Optional: a virtual LAN
 
-Friends elsewhere cannot reach a local invitation, or direct media still will not
-connect? A virtual LAN provides another connection option. [View steps](./network.md#optional-a-virtual-lan).
+Use Local room over Tailscale, ZeroTier or UU. [View steps](./network.md#optional-a-virtual-lan).
 
 ## Reporting a problem
 
@@ -537,12 +490,13 @@ Enable diagnostics before reproducing once, then export before refreshing:
   the TV also provides a copyable summary; it contains the Web version, message
   and code, without invitation links or source names.
 - **Desktop App capture or remote control:** also enable **Debug launch** on the Host App's mode selection page,
-  then press `D` in the terminal to export its report.
+  then export the diagnostic bundle from the App.
 - **Connection failure:** collect the affected Viewer and Host reports for the
   same attempt. For self-hosted SFU, include the Server report too.
 
 Reports stay on your device. Review private information before sharing them;
-[diagnostics and export](../../cmd/piik-app/README.md#diagnostics) explains their contents.
-If you cannot collect logs, send the full error text and reproduction steps.
+[diagnostics and export](../../crates/piik-app/README.md#diagnostics) explains their contents.
+Send the reports to whoever provides your Piik. If you cannot collect logs,
+send the full error text and reproduction steps.
 
 For other guides, return to [the documentation home](./README.md).

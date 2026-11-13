@@ -1,0 +1,27 @@
+[package]
+name = "piik-tls"
+description = "Process-local and configured rustls server identities for private HTTPS entry."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hex.workspace = true
+piik-config.workspace = true
+rand.workspace = true
+rcgen.workspace = true
+rustls.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tokio-rustls.workspace = true
+x509-parser.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+time = { workspace = true, features = ["macros"] }
+
+[lints]
+workspace = true

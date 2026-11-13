@@ -4,12 +4,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { describe, expect, it, vi } from "vitest";
-import { PlaybackSettings, type PlaybackSettingsProps } from "../src/client/components/living/PlaybackSettings";
+import { PlaybackSettings, type PlaybackSettingsProps } from "../src/client/ui/components/playback/PlaybackSettings";
 
 import {
   relayCapacityMessageForBrowser,
-  relayPhysicalCapacity,
-  relaySettingsLimit,
   relayVolunteerLimit,
 } from "../src/client/media/relay-capability.ts";
 
@@ -25,49 +23,53 @@ describe("browser relay capability", () => {
 
 // Execute the page's actual request owner and React props together. Backend
 // changes must adjust the applied limit without replacing the user's choice.
-const source = ts.createSourceFile("ViewerPage.tsx", readFileSync(
-  new URL("../src/client/pages/ViewerPage.tsx", import.meta.url), "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+// The session hook owns relay requests; the page owns the settings props.
+const sources = [
+  "../src/client/pages/viewer/use-viewer-session.ts",
+  "../src/client/pages/ViewerPage.tsx",
+].map(path => ts.createSourceFile(path, readFileSync(
+  new URL(path, import.meta.url), "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX));
 let update = "", props = "";
 const authentication: string[] = [];
-function collect(node: ts.Node): void {
-  if (ts.isFunctionDeclaration(node) && node.name?.text === "updateRelayVolunteer") update = node.getText(source);
-  if (ts.isPropertyAssignment(node) && node.name.getText(source) === "relayVolunteer" && ts.isConditionalExpression(node.initializer)) {
-    props = node.initializer.getText(source);
-  }
-  if (ts.isIfStatement(node) && node.expression.getText(source) === 'message.type === "authenticated"' && ts.isBlock(node.thenStatement)) {
-    for (const statement of node.thenStatement.statements) {
-      const text = statement.getText(source);
-      if (text.startsWith("if (!relaySettingsAvailable)") || text.startsWith("updateRelayVolunteer(")) authentication.push(text);
+for (const source of sources) {
+  function collect(node: ts.Node): void {
+    if (ts.isFunctionDeclaration(node) && node.name?.text === "updateRelayVolunteer") update = node.getText(source);
+    if (ts.isPropertyAssignment(node) && node.name.getText(source) === "relayVolunteer" && ts.isConditionalExpression(node.initializer)) {
+      props = node.initializer.getText(source);
     }
+    if (ts.isIfStatement(node) && node.expression.getText(source) === 'message.type === "authenticated"' && ts.isBlock(node.thenStatement)) {
+      for (const statement of node.thenStatement.statements) {
+        const text = statement.getText(source);
+        if (text.startsWith("ordinaryRelayCapacity =") || text.startsWith("signal.send(relayCapacityMessageForBrowser())") || text.startsWith("updateRelayVolunteer(")) authentication.push(text);
+      }
+    }
+    ts.forEachChild(node, collect);
   }
-  ts.forEachChild(node, collect);
+  collect(source);
 }
-collect(source);
 if (!update || !props || authentication.length !== 3) throw new Error("Viewer relay capacity owner was not found");
 const executable = ts.transpile(`${update}\n globalThis.update = updateRelayVolunteer; globalThis.props = () => (${props});
  globalThis.reauthenticate = () => { ${authentication.join("\n")} };`,
   { target: ts.ScriptTarget.ES2022 });
 
 it("keeps the requested limit through backend changes while React displays the effective value", () => {
-  const wire: Array<{ enabled: boolean; capacity: number; settings?: boolean; physicalCapacity?: number }> = [];
+  const wire: Array<{ enabled: boolean; capacity: number }> = [];
   const order: string[] = [];
   const signal = {
-    relayVolunteerRequest: null as { enabled: boolean; capacity: number; settings?: boolean; physicalCapacity?: number } | null,
+    relayVolunteerRequest: null as { enabled: boolean; capacity: number } | null,
     send: () => { order.push("ordinary"); return true; },
-    setRelayVolunteer(enabled: boolean, capacity: number, physicalCapacity?: number) {
-      this.relayVolunteerRequest = { enabled, capacity,
-        ...(physicalCapacity === undefined ? {} : { settings: true, physicalCapacity }) };
-      wire.push(this.relayVolunteerRequest);
+    setRelayVolunteer(enabled: boolean, capacity: number) {
+      this.relayVolunteerRequest = { enabled, capacity };
+      wire.push({ enabled, capacity });
       order.push("volunteer");
       return true;
     },
   };
   const context = createContext({
-    signal, relayVolunteerLimit, relaySettingsLimit, relayPhysicalCapacity, relayCapacityMessageForBrowser, message: { endpointMediaCopyCapacity: 2 },
+    signal, relayVolunteerLimit, relayCapacityMessageForBrowser, message: { endpointMediaCopyCapacity: 2 },
     relayBackendCapacity: 20, ordinaryRelayCapacity: 2, requestedRelayCapacity: null,
     clientActivationRef: { current: false }, MAX_ENDPOINT_MEDIA_CHILDREN: 3, MAX_VIEWERS_PER_ROOM_LIMIT: 20,
     relayVolunteerAvailable: true, relayVolunteerSupported: true, relayVolunteerEnabled: false,
-    relaySettingsAvailable: false, relayCapacityCustomizable: false,
     relayVolunteerPending: false, signalStatus: "connected", relayVolunteerLimits: relayVolunteerLimit(null, 2, 20),
     requestRelayVolunteerRef: { current: null as ((enabled: boolean, capacity?: number) => void) | null },
     setRelayVolunteerLimits: (limits: ReturnType<typeof relayVolunteerLimit>) => { context.relayVolunteerLimits = limits; },
@@ -123,33 +125,4 @@ it("keeps the requested limit through backend changes while React displays the e
   (context.reauthenticate as () => void)();
   expect(settings().capacity).toBe(3);
   expect(wire.at(-1)).toEqual({ enabled: true, capacity: 3 });
-
-  context.relaySettingsAvailable = context.relayCapacityCustomizable = true;
-  context.relayBackendCapacity = 20;
-  context.ordinaryRelayCapacity = 8;
-  context.requestedRelayCapacity = null;
-  signal.relayVolunteerRequest = null;
-  context.relayVolunteerEnabled = false;
-  request(false);
-  expect(settings().capacity).toBe(8);
-  expect(wire.at(-1)).toEqual({ enabled: false, capacity: 20, settings: true, physicalCapacity: 20 });
-  settings().onChange(true);
-  context.relayVolunteerEnabled = true;
-  expect(wire.at(-1)).toEqual({ enabled: true, capacity: 8, settings: true, physicalCapacity: 20 });
-  context.ordinaryRelayCapacity = 12;
-  request(undefined, undefined, false);
-  expect(settings().capacity).toBe(8); // A room edit cannot replace the personal choice.
-  context.relayBackendCapacity = 3;
-  request();
-  expect(settings().capacity).toBe(3);
-  expect(wire.at(-1)).toEqual({ enabled: true, capacity: 8, settings: true, physicalCapacity: 3 });
-  context.relayBackendCapacity = 20;
-  request();
-  expect(settings().capacity).toBe(8);
-  settings().onCapacityChange(0);
-  expect(settings().capacity).toBe(0);
-  expect(wire.at(-1)).toEqual({ enabled: true, capacity: 0, settings: true, physicalCapacity: 20 });
-  settings().onChange(false);
-  context.relayVolunteerEnabled = false;
-  expect(settings().capacity).toBe(12);
 });

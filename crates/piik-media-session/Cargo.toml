@@ -1,0 +1,20 @@
+[package]
+name = "piik-media-session"
+description = "Piik media sessions: the sans-IO forwarding core bound to str0m RTP-mode connections."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+str0m.workspace = true
+piik-media-forwarding.workspace = true
+piik-encoded.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+piik-media-testkit.workspace = true
+
+[lints]
+workspace = true

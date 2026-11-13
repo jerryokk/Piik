@@ -1,0 +1,20 @@
+[package]
+name = "piik-config"
+description = "Piik Hosted and App Local server configuration and ICE discovery."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+piik-protocol.workspace = true
+regex.workspace = true
+thiserror.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

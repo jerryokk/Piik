@@ -8,7 +8,7 @@ description: >
 
 # Context Consistency
 
-Apply the project's [contextual contract](../../../docs/standards/engineering.md#contextual-consistency).
+Apply the project's [contextual contract](../../../docs/architecture/modules.md#contextual-consistency).
 [AGENTS.md](../../../AGENTS.md) owns authority and
 [CONTRIBUTING.md](../../../CONTRIBUTING.md) owns delivery. This skill is a review
 method, not a second product specification or permission to change behavior.
@@ -23,7 +23,7 @@ An undocumented preference or an old audit is not an accepted contract.
 
 For a scoped change, follow the affected semantic family and its actual callers.
 For a requested repository-wide audit, first inventory standards and reachable
-surfaces across Browser/App/Server, shared interfaces, website/demos, tooling
+surfaces across Browser/App/Server, shared interfaces, tooling
 and guides. Record examined and unexamined areas so a large finding count cannot
 stand in for coverage. Review-only work must not alter product sources.
 

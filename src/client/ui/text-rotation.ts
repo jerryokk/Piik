@@ -1,4 +1,4 @@
-export const TEXT_ROTATION_INTERVAL_MS = 15_000;
+const TEXT_ROTATION_INTERVAL_MS = 15_000;
 
 /** A local decoration cycle; changing product state creates a new cycle. */
 export function createTextCycle<T>(frames: readonly T[]): () => T | undefined {

@@ -365,7 +365,7 @@ export function nextViewerQualityEvidencePresentationExpiryAt(
     : null;
 }
 
-export function qualityEvidenceIdentityMatchesSnapshot(
+function qualityEvidenceIdentityMatchesSnapshot(
   evidence: ViewerQualityEvidence,
   snapshot: PeerSnapshot | null,
 ): snapshot is PeerSnapshot {

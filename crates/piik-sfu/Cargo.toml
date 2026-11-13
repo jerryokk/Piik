@@ -1,0 +1,26 @@
+[package]
+name = "piik-sfu"
+description = "Piik embedded SFU: admission, the media runtime boundary, publication/subscription media and room voice."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+piik-input-route.workspace = true
+piik-media-forwarding.workspace = true
+piik-media-session.workspace = true
+piik-media-transport.workspace = true
+piik-ordered.workspace = true
+piik-protocol.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+socket2.workspace = true
+
+[lints]
+workspace = true

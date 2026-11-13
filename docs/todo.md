@@ -1,31 +1,25 @@
 # Current TODO Ledger
 
-Last reviewed: 2026-11-09
+Last reviewed: 2026-11-10
 
 This ledger contains unfinished work and explicit owner holds. Product modules
-own behavior; research and Git/PRs own evidence and completed history.
+own behavior; [verification status](./verification-status.md) records measured
+evidence and Git/PRs own completed history.
 
 ## Now
 
-- [ ] **Windows sound only works with exclusion (#534).** Compare the affected
-  application's playback endpoint with Piik's default-endpoint capture. The
-  [audio scope control](./research/native-client-media.md#windows-audio-exclusion)
-  reproduces the contrast with another output device; locate the reporter's
-  first failing transition before changing the capture owner.
-- [ ] **Blue-tinted sharing (#529).** Identify the source and affected receive
-  path from [#529](https://github.com/TNTcraftHIM/Piik/issues/529): Piik version,
-  platform, capture choice and matching source/Viewer screenshots. Compare
-  those pixels with the existing colour controls; increased bitrate did not
-  resolve the reported tint.
-- [ ] **Browser sharing falls to low source FPS during motion.** Capture original
-  track, isolated capture-input and sender counters during the same low-FPS
-  episode on Windows Chrome with mixed direct/SFU delivery. The observed sender
-  input fell to roughly 2 fps during video or game playback. Keep source cadence
-  and the separate SFU packet-loss stage distinct.
-- [ ] **Unclassified capture termination in older Windows feedback.** Identify
-  the Native failure stage and HRESULT in the original v2.4.1/v2.5.1 attempts.
-  Their Browser reports show Native failure before page cleanup but do not
-  identify its trigger.
+- [ ] **Public-invitation candidate retirement.** Capture the parent and server
+  reason when a candidate is retired before its first SDP offer. Keep this
+  separate from candidates that actually enter ICE and fail.
+- [ ] **Browser sharing falls to low source FPS during motion.** Trace raw
+  capture, sender-owned track input and encoding on Windows Chrome with mixed
+  direct/SFU delivery. The observed source fell to roughly 2 fps during video
+  or game playback; reproduce with real window/display capture. Keep the
+  separate SFU packet-loss stage distinct from source-frame production.
+- [ ] **Unclassified capture termination in earlier Windows reports.** Identify
+  the Native failure stage and HRESULT from the reports collected before the Rust
+  capture path. Their Browser reports show Native failure before page cleanup but
+  do not identify its trigger.
 - [ ] **Room voice in Native display sound.** Resolve the remaining case where
   system loopback recaptures Browser voice, while excluding the Browser process
   also removes its other audio. Browser own-document exclusion and Native
@@ -35,97 +29,58 @@ own behavior; research and Git/PRs own evidence and completed history.
   title appears and the page never loads. Static compression reduces transfer
   size; capture the stalled document/script response to locate this failure.
 - [ ] **Native H264 scene-change latency.** Reduce large-AU send-queue delay
-  while preserving bitrate restoration. The
-  [end-to-end control](./research/webrtc-encoder-pool.md#h264-burst-and-recovery)
-  locates the delay and rejects the one-frame HRD override that prevents recovery.
-- [ ] **Linux capture ends after selection (#499).** Follow
-  [#499](https://github.com/TNTcraftHIM/Piik/issues/499) on niri/Wayland with
-  GStreamer NVENC. The Browser report records capture ending before connection
-  cleanup; obtain the native capture failure to distinguish the encoder and Portal.
+  while preserving bitrate restoration. The delay is in the send queue, and a
+  one-frame HRD override prevents recovery; do not use it.
 - [ ] **Mouse input stops when Host Chrome is minimized (#502).** Follow
-  [#502](https://github.com/TNTcraftHIM/Piik/issues/502) on the original Windows
-  host. The supplied v2.5.2 reports retain the grant and receive authorized mouse
-  events, but Windows `SendInput` rejects a button event and subsequent release
-  attempts. Capture whether local physical input also stops during the refusal
-  to identify its OS trigger. Later same-process reports clear the release
-  backlog; the local controlled Chrome trial did not reproduce the failure.
-- [ ] **Return LiveKit to an upstream pin.** Follow
-  [upstream #5016](https://github.com/livekit/livekit/pull/5016). Once upstream
-  supplies the allocator input Piik needs, verify recovery and remove the
-  temporary replacement. [Dependency provenance](../internal/thirdparty/README.md#local-encoder-probe-demand)
-  owns the patch and removal boundary.
-- [ ] **Return Pion to an upstream pin.** Follow
-  [upstream #3668](https://github.com/pion/webrtc/pull/3668). Once upstream
-  includes equivalent H.264 profile matching, verify the receiver and forwarding
-  controls and remove the temporary replacement. [Dependency provenance](../internal/thirdparty/README.md#pion-h264-profile-matching)
-  owns the patch and removal boundary.
+  public report #502 on the original Windows host. The supplied reports retain
+  the grant and receive authorized mouse events, but Windows `SendInput` rejects a
+  button event and subsequent release attempts. Identify that OS refusal trigger and verify held-button recovery;
+  the local controlled Chrome trial did not reproduce it.
+- [ ] **Acceptance gates.** Run the App media gates against release builds (the
+  browser fan-out gate already passes on the packaged App) and complete
+  public-link cross-network acceptance, which needs an external host. Do not
+  relax frame-delivery thresholds to close this item. Current evidence is owned
+  by [verification status](./verification-status.md).
 
 ## Next
 
 - [ ] **Stronger microphone noise suppression (#518).** Assess the
-  [requested speech-processing option](https://github.com/TNTcraftHIM/Piik/issues/518)
+  requested speech-processing option (public report #518)
   through the shared microphone input. Browser voice processing is already the
   default; keep screen and system audio unprocessed.
-- [ ] **3.0 semantic reconstruction.** Continue the isolated `feat/channel-prototype`
-  from the accepted domain/room/participant model. Map existing behavior and
-  ownership, remove accidental constraints, then implement cohesive Rust runtimes
-  with mature components. Preserve the reviewed recovery semantics, not Go
-  function or module parity. The prototype's design owners and ledger govern
-  its implementation; keep it outside the maintenance candidate.
-- [ ] **Release headlines in App and Server update checks.** Keep the prepared
-  implementation on `archive/deferred-prototypes` for a later feature release. It consumes
-  the existing [headline contract](./standards/versioning.md#release-notes).
 
 ## Held By Owner
 
-- [ ] **iOS native App.** Paused in favor of Browser use. Preserve the isolated
-  implementation on `feat/ios-client`; native development and publication stay
-  outside the current phase.
-- [ ] **QR invitations.** Deferred from the maintenance release on 2026-10-24.
-  Keep the local QR implementation on `archive/deferred-prototypes` for later acceptance.
 - [ ] **Additional collaboration cursors.** Deferred by the owner. Keep the
   shared system mouse; do not add multi-cursor or pointer-ownership visualization.
 - [ ] **Persistent-loss estimator replacement.** Deferred on 2026-10-18.
   Keep mature congestion control and accept quality reduction under sustained
   high loss; concrete accounting/recovery defects remain ordinary bug fixes.
-  [Evidence](./research/node-local-media-design.md#persistent-loss-with-low-source-utilization).
+  [Verification status](./verification-status.md) records the measured basis.
 - [ ] **Multiple remote-control screens.** Deferred on 2026-10-17. Keep one
   shared source; Viewer screen switching and simultaneous screens are later work.
-- [ ] **32-bit Windows/Linux Apps.** Deferred on 2026-10-02. No package or
-  website option is planned.
+- [ ] **32-bit Windows App.** Deferred on 2026-10-02. No package is planned.
 - [ ] **Windows ARM64 App.** Deferred on 2026-10-03. Keep Windows downloads x64-only.
 - [ ] **Alternative public-invitation providers.** Deferred on 2026-10-16.
-  Keep Cloudflare Quick Tunnel. The [provider assessment](./research/cross-platform-client-runtime.md#alternative-invitation-providers)
-  owns alternatives and tradeoffs.
+  Keep Cloudflare Quick Tunnel; other providers have not been assessed against
+  it.
 
 ## Parked Product Work
 
-- **Virtual gamepads beyond Windows.** Linux uinput passed its isolated kernel
-  gate; desktop permissions and game recognition need physical checks. macOS
-  virtual HID needs an entitled App and macOS SDK/runtime checks. The
-  [co-play assessment](./research/room-interactions.md#remote-co-play) owns
-  platform evidence; Piik does not bundle or install optional input drivers.
-- **Platform output.** A registered receiver may act as an ordinary Viewer after
-  the [platform-output gate](./research/platform-output.md) passes.
+- **Platform output.** A registered receiver may act as an ordinary Viewer once
+  its delivery path is verified.
 - **Additional languages.** Review community catalogs and rendered UI through
   the [translation guide](./guide/translating.md).
 - **Windows code signing.** Revisit when a trusted signing service is available;
   sign executables before archive checksums. Signing does not guarantee the end
   of antivirus cloud scanning.
-- **macOS distribution signing.** Developer ID signing and Apple notarization
-  need an Apple Developer identity. [#489](https://github.com/TNTcraftHIM/Piik/issues/489)
-  reports first-launch blocking; the troubleshooting guide provides a scoped
-  opening procedure, not a signing fix. Verify downloaded bundles on a Mac when
-  signing becomes available.
 - **Automatic local chat history.** Manual TXT export already exists. Automatic
   storage needs a stable room-incarnation identity, bounded retention and deletion;
   reusable room codes must not combine conversations.
-- **Managed Demo hosting.** The [provider assessment](./operations/website.md#managed-hosting-assessment)
-  establishes no cost saving; keep the existing P2P-only Demo pending a concrete option.
 - **Phone as a Host microphone.** Revisit only for a concrete use case that
-  justifies the [pairing and input boundary](./research/camera-and-microphone.md#phone-microphone-assessment).
-- **Mobile controlled endpoints.** Separate scope from desktop keyboard/mouse
-  control and desktop co-play.
+  justifies the added pairing and input boundary.
 - **Multiple simultaneous sharers.** Define publication/subscription ownership
-  before prototyping. The [party-mode assessment](./research/room-interactions.md#multiple-sharers-assessment-not-implemented)
-  owns the proposal; the current one-Host contract remains.
+  before prototyping; the current one-Host contract remains.
+- **Semantic reconstruction.** Revisit the domain/room/participant model after
+  the acceptance gates close: map existing behavior and ownership and remove
+  accidental constraints, preserving the reviewed recovery semantics.

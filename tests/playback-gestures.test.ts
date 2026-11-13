@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { bindPlaybackGestures } from "../src/client/components/living/playback-gestures";
+import { bindPlaybackGestures } from "../src/client/ui/components/playback/playback-gestures";
 
 it("reserves picture gestures for desktop double-click fullscreen and removes them on disposal", () => {
   const screen = new EventTarget();

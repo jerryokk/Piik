@@ -30,8 +30,6 @@ export const nativeHealthSchema = nativeDiscoveryIdentitySchema.extend({
   version: z.string().optional(),
   revision: z.string().optional(),
   packageTarget: z.string().optional(),
-  qualityPreference: z.boolean().optional(),
-  activationURL: z.literal("piik://media").optional(),
   instanceToken: z
     .string()
     .length(43)
@@ -44,25 +42,26 @@ export const nativeHealthSchema = nativeDiscoveryIdentitySchema.extend({
       maxVideoMacroblocksPerSecond: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
       maxVideoFramerate: z.number().positive().max(Number.MAX_SAFE_INTEGER).optional(),
       maxVideoBitrate: positiveUint32Schema.optional(),
-      receiverReuse: z.boolean().default(false),
+      // Receiver reuse, co-play and the control features below are facts of
+      // this build; only the probed machine facts stay optional.
+      receiverReuse: z.boolean(),
       maxRelayChildren: positiveUint32Schema.optional(),
       remoteInput: z.boolean().optional(),
       remoteStopShortcut: z.boolean().optional(),
-      remoteCoPlay: z.boolean().optional(),
+      remoteCoPlay: z.boolean(),
       video: z.boolean().default(false),
       processAudio: z.boolean().default(false),
       systemAudio: z.boolean().default(false),
       processAudioExclusion: z.boolean().default(false),
       microphone: z.boolean().default(false),
-      shareVolume: z.boolean().optional(),
-      sourceCancellation: z.boolean().optional(),
-      captureFailureDetails: z.boolean().optional(),
+      shareVolume: z.boolean(),
+      sourceCancellation: z.boolean(),
+      captureFailureDetails: z.boolean(),
       // API availability, not Windows approval or observed border visibility.
-      captureBorderControl: z.boolean().default(false),
+      captureBorderControl: z.boolean(),
       hardwareH264: z.boolean().default(false),
       softwareVP8: z.boolean().default(false),
-    })
-    .prefault({}),
+    }),
 });
 export type NativeHealth = z.infer<typeof nativeHealthSchema>;
 
@@ -291,7 +290,7 @@ const remoteControlRequestSchema = z.object({
 }).strict();
 export type RemoteControlRequest = z.infer<typeof remoteControlRequestSchema>;
 
-export const remoteControlStateSchema = z.object({ mode: remoteControlModeSchema, platform: remoteInputPlatformSchema, requests: z.array(remoteControlRequestSchema), coPlay: z.boolean().optional(), gamepad: z.boolean().optional(), simultaneous: z.boolean().optional() });
+export const remoteControlStateSchema = z.object({ mode: remoteControlModeSchema, platform: remoteInputPlatformSchema, requests: z.array(remoteControlRequestSchema), coPlay: z.boolean().optional(), gamepadDriver: z.boolean().optional(), simultaneous: z.boolean().optional() });
 export type RemoteControlState = z.infer<typeof remoteControlStateSchema>;
 
 export const nativeEventSchema = z.discriminatedUnion("type", [

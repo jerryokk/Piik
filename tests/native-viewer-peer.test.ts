@@ -8,7 +8,7 @@ import type { NativeClientEvent } from "../src/client/native/wire";
 import {
   NativeCapableViewerPeer,
   offerHasNativeVideoCodec,
-} from "../src/client/native/native-viewer-peer";
+} from "../src/client/native/native-viewer";
 
 afterEach(() => {
   vi.useRealTimers();

@@ -9,11 +9,6 @@ export function useRoomVoiceSnapshot(session?: Pick<RoomVoiceSession, "subscribe
   return useSyncExternalStore(session?.subscribe ?? noSubscription, session?.getSnapshot ?? noSnapshot, noSnapshot);
 }
 
-export function useRoomVoiceState(session?: Pick<RoomVoiceSession, "subscribe" | "getSnapshot"> | null) {
-  const snapshot = useRoomVoiceSnapshot(session);
-  return snapshot?.connected ? snapshot.room : null;
-}
-
 export function useRoomVoiceMetrics(session: Pick<RoomVoiceSession, "endpoint"> | null | undefined, enabled: boolean, room: RoomVoiceSnapshot["room"]): readonly VoiceConnectionMetric[] {
   const [sample, setSample] = useState<{ session: typeof session; metrics: readonly VoiceConnectionMetric[] } | null>(null);
   useEffect(() => {

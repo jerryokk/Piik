@@ -1,0 +1,85 @@
+/* Piik living-room UI — the production design system.
+   The stage is a TV on the wall, viewers are pawns on the couch, connection
+   state is what the TV shows and what the LEDs say. Control copy lives in tooltips
+   and aria in visual mode; text modes add visible captions.
+   Status and control motion stays distinct from quiet participant gestures;
+   all respect prefers-reduced-motion. */
+
+:root {
+  color-scheme: light;
+  /* Fixed warm upholstery; shade changes define the cushions and arms. */
+  --couch: #e9ad63;
+  --couch-dark: #cd8845;
+  --you: #2fa66a;
+  --pawn-1: #3b7dd8;
+  --pawn-2: #559bb7;
+  --pawn-3: #8e6fd8;
+  --pawn-4: #2fa8a0;
+  --pawn-5: #e2698f;
+  --pawn-6: #4e9c74;
+  --pawn-7: #a978bd;
+  --route-p2p: #1f7a4a;
+  --route-sfu: #53676a;
+  --route-pending: var(--busy);
+  --lcd: #1d2b22;
+  --lcd-digits: #9de8bf;
+  --stage: #17191c;
+  --frame: #283445;
+  --frame-highlight: #3e4b5b;
+  /* One corner scale: small detail, standard surface, controls, large panels.
+     Sizes between these read as inconsistent rather than intentional. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 16px;
+  --radius-lg: 24px;
+  --control-radius: 18px;
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", SFMono-Regular, Consolas, monospace;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --frame: #1d2633;
+  --stage: #141517;
+  --route-p2p: #3fb97a;
+  --route-sfu: #9bb0c5;
+  --lcd: #0d1611;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body, #root { margin: 0; min-height: 100%; }
+
+body {
+  background: var(--wall);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 300ms ease, color 300ms ease;
+}
+
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+button:disabled { cursor: not-allowed; opacity: 0.4; }
+input[type="checkbox"]:not(:disabled) { cursor: pointer; }
+h1, h2, h3, p, dl, dd, dt { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+
+:focus-visible {
+  outline: 3px solid var(--action);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

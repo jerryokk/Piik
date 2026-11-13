@@ -2,20 +2,21 @@
 
 English · [简体中文](./network.zh-CN.md) · [Troubleshooting](./troubleshooting.md)
 
-Start with the [basic connection checks](./troubleshooting.md#common-problems).
-If you still cannot connect, choose what matches:
+Use this page when **the page opens, but picture or voice will not connect**.
+Choose the relevant check:
 
+- **Campus/work network, or the same invite works on a hotspot:** [connection options](#campus-networks-and-strict-nat).
 - **The same invite works in another browser:** [browser restrictions](#browser-webrtc-restrictions).
-- **The same invite works on a hotspot:** [connection options](#campus-networks-and-strict-nat).
-- **Friends in another location cannot reach your local invitation:** [connect through a virtual LAN](#optional-a-virtual-lan).
 - **Logs mention STUN, or you manage the router:** [discovery and router checks](#stun-ipv6-and-router-checks).
+- **Using Tailscale, ZeroTier or UU:** [virtual LAN steps](#optional-a-virtual-lan).
 
-If a [public-invitation page will not open](./troubleshooting.md#public-invitation-fails-or-shows-1033)
-or [video plays but blurs or stutters](./troubleshooting.md#picture-blurs-stutters-or-stops), follow that symptom instead.
-
-Web pages and chat use a separate connection from picture and sound:
+Web pages and chat use a separate connection from picture and sound.
+For media failures, check WebRTC UDP and the route options below.
 
 ![The Host and friend access the site for web and chat; picture and sound use a separate direct or forwarded media connection.](../assets/guide/network-paths.en.svg)
+
+If the [invitation page will not open](./troubleshooting.md#public-invitation-fails-or-shows-1033),
+or [video already plays but blurs or stutters](./troubleshooting.md#picture-blurs-stutters-or-stops), start with that symptom instead.
 
 ## Campus networks and strict NAT
 
@@ -25,16 +26,16 @@ on the original network, investigate that network's shared gateway or firewall.
 For regular use, choose an option that fits your group:
 
 - **You have a Piik site:** ask its operator to [enable server media forwarding (SFU)](../operations/self-hosting.md#optional-media-fallback). The Host turns off **Privacy mode** so forwarding can be tried if direct connections fail. For App capture, [approve the new site](./getting-started.md#use-app-with-an-existing-site), then send its invitation.
-- **No usable forwarding site, and direct media still will not connect:** a [virtual LAN](#optional-a-virtual-lan) offers another path. Everyone joins the same virtual network, then uses the App's **Local room**.
+- **Everyone can install a networking tool:** use the [virtual LAN steps](#optional-a-virtual-lan) below with the App's **Local room**.
 - **The required connections are blocked:** use an available network or ask its administrator to review access.
 
-> **Media requires UDP.** `demo.piik.tv` and App **Public invite** use P2P-only media.
+> **Media requires UDP.** App **Local room** and **Public invite** use P2P-only media.
 > SFU forwarding requires a site with that feature enabled and a reachable UDP endpoint.
 
 ## Browser WebRTC restrictions
 
 Browser WebRTC settings, VPNs and privacy extensions can block media UDP,
-including the browser-to-App connection on the same computer.
+including a browser Viewer on the Host's computer.
 
 1. Open the same invitation in a browser profile with default settings and no relevant privacy extensions.
 2. If it works, check **WebRTC** or **IP-leak protection** in the original browser and restore a policy that allows WebRTC UDP.
@@ -101,10 +102,8 @@ and [double NAT](https://www.tp-link.com/us/support/faq/3113/).
 
 ## Optional: a virtual LAN
 
-If friends elsewhere cannot reach your local invitation, or direct media still
-will not connect after the basic checks, try a virtual LAN. It connects your
-devices so you can use Piik App's **Local room** instead of the public-invite path.
-The tool must provide reachable virtual IPv4 addresses
+A virtual LAN connects devices in different places, so you can share through
+Piik App's **Local room**. The tool must provide reachable virtual IPv4 addresses
 and carry both web traffic and WebRTC UDP; acceleration limited to one game does
 not suffice. Choose a tool available to everyone in your group:
 
@@ -126,14 +125,5 @@ If something fails, start with the first failing step:
 - **Microphone or remote control is unavailable:** use the App-generated HTTPS invitation, confirm its certificate, then check [browser permissions](./troubleshooting.md#microphone-or-remote-controls-are-unavailable). Supporting browsers can use these features without a public tunnel, just as on an ordinary LAN.
 
 Join only with trusted friends.
-
-<details>
-<summary>Use frp with an existing server</summary>
-
-For administrators with a public server, the [frp recipe](../operations/self-hosting.md#optional-forward-an-existing-server-with-frp)
-forwards an existing site's web and SFU endpoints through frps. Configure both
-web and media forwarding.
-
-</details>
 
 If the issue persists, [collect reports](./troubleshooting.md#reporting-a-problem) from the same attempt.

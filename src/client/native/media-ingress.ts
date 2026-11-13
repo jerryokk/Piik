@@ -1,5 +1,5 @@
 import type { IceConfig, SignalPayload } from "../../shared/protocol";
-import { createOpaqueId } from "../lib/opaque-id";
+import { createOpaqueId } from "../lib/util/opaque-id";
 import type { QualityProfile } from "../media/quality";
 import type { PeerSnapshot } from "../types";
 import { HostPeer } from "../webrtc/host-peer";
@@ -57,7 +57,6 @@ export class NativeMediaIngress {
     private readonly client: NativeMediaIngressControl,
     private readonly onFailed: () => void,
     private readonly getProfile: () => QualityProfile,
-    private readonly edgeCapacity = MAX_ENDPOINT_MEDIA_CHILDREN,
   ) {}
 
   get hasAudio(): boolean { return this.audio; }
@@ -137,7 +136,7 @@ export class NativeMediaIngress {
     }
     const result = await this.client.receiveOffer(
       this.shareId, this.connectionId, payload.description,
-      LOCAL_ICE_CONFIG, this.edgeCapacity,
+      LOCAL_ICE_CONFIG, MAX_ENDPOINT_MEDIA_CHILDREN,
     );
     if (this.disposed) {
       await this.client.closeReceiver(this.shareId, this.connectionId);

@@ -1,0 +1,53 @@
+[package]
+name = "piik-app"
+description = "Piik Windows App: the Tauri v2 WebView2 shell around the embedded Piik runtime."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "piik-app"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+piik-app-config.workspace = true
+piik-config.workspace = true
+piik-diagnostics.workspace = true
+piik-failure.workspace = true
+piik-lan.workspace = true
+piik-launcher.workspace = true
+piik-loopback.workspace = true
+piik-native-audio.workspace = true
+piik-native-capture.workspace = true
+piik-native-control.workspace = true
+piik-native-host.workspace = true
+piik-native-viewer.workspace = true
+piik-protocol.workspace = true
+piik-public-tunnel.workspace = true
+piik-remote-input.workspace = true
+piik-service.workspace = true
+piik-tls.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# The App never uses a dev server: always embed `frontendDist` (production mode).
+tauri = { workspace = true, features = ["custom-protocol"] }
+tauri-plugin-opener.workspace = true
+tauri-plugin-single-instance.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+reqwest.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

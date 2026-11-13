@@ -20,7 +20,7 @@ import {
 } from "./video-codec";
 import { preferredVideoCodecForTrack } from "./video-codec-preflight";
 
-export interface ViewerRelayEvents {
+interface ViewerRelayEvents {
   onInputChannel?: (channel: RTCDataChannel, connection: RTCPeerConnection) => void;
   sendSignal: (peerId: string, payload: SignalPayload) => boolean;
   onUpdate?: (snapshot: PeerSnapshot | null) => void;

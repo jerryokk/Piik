@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { participantMotion, participantMotionPhase } from "../src/client/components/living/participant-motion";
+import { participantMotion, participantMotionPhase } from "../src/client/ui/components/people/participant-motion";
 
 describe("participant gestures", () => {
   const identity = "779594c8-a92c-48d9-918f-a7d0befa46d1";

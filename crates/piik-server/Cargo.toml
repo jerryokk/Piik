@@ -1,0 +1,28 @@
+[package]
+name = "piik-server"
+description = "The Hosted Piik server: piik-server.exe serving the Browser UI, room API, signaling and STUN."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "piik-server"
+path = "src/main.rs"
+
+[dependencies]
+piik-config.workspace = true
+piik-diagnostics.workspace = true
+piik-service.workspace = true
+piik-tls.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

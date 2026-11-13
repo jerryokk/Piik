@@ -1,0 +1,19 @@
+[package]
+name = "piik-app-config"
+description = "Piik App settings: the strict client.json, its quality preference and public STUN policy."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+piik-config.workspace = true
+piik-protocol.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

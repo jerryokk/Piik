@@ -29,7 +29,7 @@ const MIN_PREDICTABLE_PORT = 1;
 const MAX_PREDICTABLE_PORT = 65_535;
 
 /** Keep the experiment bounded so normal ICE candidates retain their budget. */
-export const NAT_PREDICTION_STEPS = 4;
+const NAT_PREDICTION_STEPS = 4;
 export const MAX_NAT_PREDICTION_CANDIDATES = NAT_PREDICTION_STEPS * 2;
 
 export async function addRemoteIceCandidate(

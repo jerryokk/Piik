@@ -5,13 +5,13 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { describe, expect, it, vi } from "vitest";
-import { VideoRateControls } from "../src/client/components/living/QualityPresets";
+import { VideoRateControls } from "../src/client/ui/components/share/QualityPresets";
 import { QUALITY_PROFILES, VIDEO_CAPTURE_LIMITS } from "../src/client/media/quality";
 
 // Exercise the shared draft owner without adding a DOM runtime to unit tests.
 // Real pointer/focus ordering is also checked in the existing Browser preview.
 const source = ts.createSourceFile("NumberControl.tsx", readFileSync(
-  new URL("../src/client/components/living/NumberControl.tsx", import.meta.url), "utf8",
+  new URL("../src/client/ui/components/people/NumberControl.tsx", import.meta.url), "utf8",
 ), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const owner = source.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "NumberControl");
 if (!owner) throw new Error("Missing numeric quality draft owner");
@@ -29,8 +29,9 @@ function editor() {
   const setInvalid = vi.fn();
   const render = runInNewContext(executable, {
     exports: {}, require: () => jsxRuntime, useRef: () => ({ current: input }), Number,
-    useState: () => [false, setInvalid], useId: () => "validation", useCopy: () => ({ t: vi.fn() }), Glyph: () => null,
+    useState: () => [false, setInvalid], useId: () => "validation", useCopy: () => ({ t: vi.fn() }),
     useEffect: (effect: () => void) => effect(),
+    Glyph: () => null,
   });
   let choose!: (next: number) => void;
   let key!: (event: unknown) => void;
@@ -95,7 +96,10 @@ describe("Numeric quality editing group", () => {
       expect(fields[index]).toContain(`value="${value}"`);
       expect(fields[index]).not.toContain('type="range"');
       expect(fields[index]).toContain('class="lr-quality-custom"');
-      if (nearest === null) expect(fields[index]).not.toContain('class="lr-btn is-dense"');
+      // Steppers nudge the typed value; a nearest-preset button is the extra
+      // control that only appears when a slider can express the custom value.
+      expect(fields[index]).toContain('class="lr-number-steppers"');
+      if (nearest === null) expect(fields[index]).not.toMatch(/<button[^>]*aria-label="[^"]*(fps|Mbps)"/);
       else expect(fields[index]).toMatch(new RegExp(`<button[^>]*aria-label="[^"]*${nearest} ${unit}`));
     }
     expect(onChange).not.toHaveBeenCalled();

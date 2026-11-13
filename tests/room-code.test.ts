@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { copyRoomCode } from "../src/client/components/room-code.ts";
+import { copyRoomCode } from "../src/client/ui/copy-room-code.ts";
 
 describe("room code copy boundary", () => {
   it("copies only the visible room code", async () => {

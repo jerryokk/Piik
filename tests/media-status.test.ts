@@ -6,7 +6,7 @@ import {
   type ViewerPresentationAction,
 } from "../src/client/media/viewer-presentation";
 import { deriveHostStatus, deriveParticipantStatus, deriveViewerStatus } from "../src/client/ui/media-status";
-import { participantConnection } from "../src/client/lib/participant-connection";
+import { participantConnection } from "../src/client/lib/room/participant-connection";
 import type { RoomVoiceState } from "../src/shared/protocol";
 
 const playingActions: ViewerPresentationAction[] = [

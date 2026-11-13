@@ -2,7 +2,7 @@ import type { CopyKey } from "../ui/copy";
 import { RemoteInputChannel } from "./remote-input-channel";
 import type { IceConfig, SignalPayload } from "../../shared/protocol";
 import { debugError } from "../lib/debug";
-import { observeDebugConnection } from "../lib/debug-webrtc";
+import { observeDebugConnection } from "../lib/debug/webrtc";
 import { waitForConnectionOperation } from "./connection-operation";
 import {
   EMPTY_METRICS,

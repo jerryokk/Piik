@@ -11,13 +11,14 @@
 
 # Dependencies and generated output
 node_modules/
+/target/
 public/third-party-licenses.txt
 build/
 coverage/
 /dist/
-!internal/server/webassets/dist/
-internal/server/webassets/dist/*
-!internal/server/webassets/dist/.gitkeep
+!web/dist/
+web/dist/*
+!web/dist/.gitkeep
 benchmark-results/
 .cache/
 *.sqlite

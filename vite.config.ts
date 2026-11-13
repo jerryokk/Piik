@@ -1,18 +1,18 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-// The Go server owns /api, /healthz and /signal; everything else (including
+// piik-server owns /api, /healthz and /signal; everything else (including
 // /r/<roomId> invitation paths) is the SPA that Vite already serves. Keeping the
 // Browser origin on 8787 leaves PUBLIC_BASE_URL, ALLOWED_ORIGINS, the README and
-// the LAN-phone instructions unchanged; the Go dev server moves to 8788.
+// the LAN-phone instructions unchanged; the piik-server dev process moves to 8788.
 const server = "http://127.0.0.1:8788";
 
 export default defineConfig({
   plugins: [react()],
   // Local build output includes Browser profiles, not application entries.
-  optimizeDeps: { entries: ["index.html", "site/**/*.html"] },
+  optimizeDeps: { entries: ["index.html"] },
   build: {
-    outDir: "internal/server/webassets/dist",
+    outDir: "web/dist",
     emptyOutDir: false,
   },
   server: {
@@ -20,8 +20,8 @@ export default defineConfig({
     host: true,
     port: 8787,
     strictPort: true,
-    // Packaging and the embedded Go bundle are outputs, not live UI sources.
-    watch: { ignored: ["**/build/**", "**/internal/server/webassets/dist/**"] },
+    // Packaging and the embedded Browser bundle are outputs, not live UI sources.
+    watch: { ignored: ["**/build/**", "**/web/dist/**"] },
     proxy: {
       "/api": { target: server },
       "/healthz": { target: server },

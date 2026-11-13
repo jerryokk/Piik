@@ -41,18 +41,6 @@ sharing. Viewers hear it through the picture's sound without joining room voice.
 Room voice remains independent. If you enable both microphones, listeners may
 hear you twice; Piik warns you and leaves the choice to you.
 
-## iPhone and iPad screen sharing
-
-Use **Safari on iOS/iPadOS 27 or later** and select **Browser** to share your screen.
-Watching a friend and camera sharing use the browser's existing capabilities
-and do not require this screen-sharing version.
-
-Safari screen sharing does **not** capture system audio. To speak with the picture,
-explicitly enable [Include my microphone](#include-your-microphone).
-MDN's [verified Safari 27 support](https://github.com/mdn/browser-compat-data/pull/30732)
-and [screen/audio compatibility data](https://github.com/mdn/browser-compat-data/blob/main/api/MediaDevices.json)
-distinguish screen capture from audio capture.
-
 ## Cameras and virtual audio inputs
 
 Picture sound and conversation use separate controls. Muting one does not mute the other.
@@ -64,7 +52,7 @@ camera, the others are listed by name. Select a camera's built-in microphone
 separately for source commentary or room voice. For OBS Virtual Camera audio, follow
 the [OBS audio-routing guide](https://obsproject.com/kb/video-call-streaming-tutorial/),
 then choose that input for source commentary under **Sharing settings → Sound**,
-or use [room voice’s microphone settings](./room-tools.md#room-voice) for the separate conversation channel.
+or use [room voice’s microphone settings](./chat-and-voice.md#room-voice) for the separate conversation channel.
 
 ## Exclude a voice app from screen audio
 
@@ -122,15 +110,7 @@ Move the pointer over the picture or tap it to show the playback bar.
 Leave the connection setting on **Auto** for ordinary use. To compare routes,
 select one of the alternatives offered by the Host and site.
 
-The Host can set **Sharing settings → Connection settings → Room relay limit**. It is
-the default number of outgoing copies per device, not the room's Viewer limit.
-
-Viewers follow that default. In **Playback settings → Connection**, enable
-**Custom relay limit** to choose a lower or higher limit for this visit. Set it
-to **0** to receive without relaying. Higher limits use more upload bandwidth;
-available values follow the device's capability. Older sites offer only
-**Raise relay limit**.
-
-In P2P-only rooms with a limit of **1**, keep the first Viewer's relay limit
-above zero so others can connect through them. If that Viewer disables relaying,
-raise the room limit or their personal limit to make another path available.
+On supporting sites, **Playback settings → Connection → Help relay to more
+viewers** lets a Viewer volunteer more upload for the current visit. It starts
+with one extra Viewer; adjust **Maximum relay viewers** to set your limit.
+It remains an ordinary P2P relay; enable it on a stable connection with upload to spare.

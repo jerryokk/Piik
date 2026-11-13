@@ -1,63 +1,76 @@
 # Verification Status
 
-Last updated: 2026-10-26
+Last updated: 2026-11-13
 
-This file summarizes evidence boundaries that materially affect product claims.
-[Status](./status.md) owns candidate and deployment readiness; research owns
-measurements and platform details.
+This file records what has actually been observed, so product claims stay within
+their evidence. [Status](./status.md) owns current readiness; architecture
+describes intended behavior, not measured success.
 
 ## Current Evidence
 
-Windows App and Browser are the primary acceptance targets. Room voice
-passed the normal Host/Viewer flows on P2P and embedded SFU, including
-channel activation, forwarding, source replacement and recovery. Controlled voice
-checks cover Browser/App endpoint combinations, SFU fallback and UDP interruption;
-they do not establish a population connection rate. Native H264/VP8,
-constrained-network recovery, the media lifecycle, responsive UI and packaging
-checks also passed. Exact results stay with their measured artifacts and revision.
+Windows App and Browser are the supported acceptance targets. Native window
+sharing has passed real Chrome checks in Auto, H264 and VP8 modes; H264 display
+sharing also passes. These checks cover decoded frames, live quality changes,
+pause/resume and source lifetime, not only signaling. P2P and SFU room voice pass
+the normal Host/Viewer lifecycle with synthetic microphones; the P2P path also
+covers relay. Browser VP8 and native H264 publication through the embedded SFU
+pass their media and recovery gates. The native gate proves sustained delivery
+with automatic layer selection, not a fixed high-resolution or bandwidth
+guarantee.
 
-The owner accepted the earlier scoped interaction, Native and Browser media
-phases, including NAT and Auto codec behavior.
+The browser fan-out gate passes: one Native Host encodes once, a direct Browser
+Viewer and a Viewer whose Native relay re-forwards the received encoding both
+decode at the source rate for the measured window, and the gate also covers a
+live quality change, pause/resume, a source-audio change and recovery after the
+relay App exits. A relay's Viewer acquires its Native receive connection and
+local bridge a little after the direct one; the gate starts its steady window
+once both decode, and the sustained-rate requirement is unchanged.
+
+The remaining acceptance work is tracked in [TODO](./todo.md).
 
 ## Device Evidence Boundary
 
-- macOS/Linux builds and bounded native checks are distinct from physical
-  capture and input. Physical platform coverage remains limited.
-- Android's system-browser App passed emulator screen/camera sharing
-  with concurrent room voice. Browser consent returns to the same tab; source
-  replacement, cancellation and background return preserve the share. Local/public
-  startup and launcher reentry also have emulator evidence. Full-App checks now
-  cover concurrent original/lower encoding, live-budget reduction and recovery,
-  static-source late joins, lower-output retirement, capture stop and restart.
-  The [capture assessment](./research/cross-platform-client-runtime.md#android-encoder-budget)
-  owns measured bitrate bounds and the stock FrameDropper's saturation limit.
-  Phone/tablet/TV hardware coverage and physical audio remain limited.
-- The separate iOS system-browser implementation passes Apple SDK device and
-  simulator builds and its session/encoder checks. Physical capture, background
-  lifetime and hosted-site linkage remain in the [held iOS scope](./todo.md#held-by-owner).
 - Windows HDR-to-SDR has synthetic GPU and decoded-video evidence; it does not
-  establish Browser-capture HDR conversion or end-to-end HDR. The
-  [fidelity assessment](./research/media-fidelity.md#hdr-to-sdr) owns that boundary.
-- Audio-exclusion availability follows actual platform capability. The
-  [audio assessment](./research/native-client-media.md#windows-audio-exclusion)
-  owns supported interfaces and isolation evidence.
+  establish Browser-capture HDR conversion or end-to-end HDR.
+- Audio-exclusion availability follows actual platform capability; supported
+  interfaces and their isolation have been checked on Windows only.
 - Room-voice acceptance uses synthetic microphones. It establishes the route and
   membership lifecycle, not acoustic echo performance on every physical device.
 - Remote-control UI and routed input have local evidence. OS permissions,
-  protected/admin applications and game compatibility retain the limits in the
-  [input assessment](./research/room-interactions.md#attended-remote-control-prototype).
+  protected/admin applications and game compatibility retain their limits.
+- Virtual gamepads are covered by mapping, slot-contention and lifecycle tests
+  against a recorded backend. Real ViGEmBus enumeration, the four-slot budget
+  shared with the Host's own controllers, and in-game player assignment have not
+  been measured on hardware.
 - A two-device Windows virtual-LAN trial established direct packaged-App web
   access and remote video after scoped firewall permission. Other networks must
-  likewise carry HTTP/WebSocket and media UDP. [Virtual LAN research](./research/nat-traversal.md#routed-virtual-lan-discovery)
-  owns the measured setup.
+  likewise carry HTTP/WebSocket and media UDP.
+- iPhone/iPad Viewer playback uses WebKit; the WebKit-specific fullscreen and
+  picture-in-picture paths are covered by their unit tests, not by a device run.
 
 ## Adaptation Boundaries
 
-WebRTC and LiveKit own adaptation. The
-[encoder-pool research](./research/webrtc-encoder-pool.md) and
-[network controls](./research/network-lab.md#sustained-quality-recovery) distinguish
-Native recovery fixes from Browser-controlled recovery and sustained-loss limits.
-Browser scripts cannot tune the encoder's internal QP thresholds.
+WebRTC/str0m own adaptation. Native recovery fixes are distinct from
+Browser-controlled recovery and sustained-loss limits. Browser scripts cannot
+tune the encoder's internal QP thresholds.
+
+For the persistent-loss hold (a 12 Mbps link, 320 ms RTT and 15% loss), a
+full-budget video settled near 1.16 Mbps while a quarter-budget video fell to
+roughly 13 kbps. That is why the estimator is not replaced: the observed floor is
+the mature controller trading quality for delivery, not a defect to override.
+
+Stereo evidence measured more than 77 dB separation through the SFU, more than
+57 dB through a relay and a Native regression of 20 dB or better. HDR-to-SDR
+conversion measured GPU medians of 0.045/0.240 ms on an RTX device and
+2.39/11.17 ms on an AMD device. Audio-exclusion probes took about 300/163 ms, and
+retirement 42/64 ms. The virtual-LAN trial carried 1920x1080 at 20 fps with 32 ms
+latency between two packaged Apps.
+
+Persistence was exercised to storage exhaustion: with the SQLite page count
+capped, room creation failed with `SQLITE_FULL` without consuming authority,
+free codes or room rows, and succeeded again once capacity returned. The
+restored store then read the created room back. This is the current Rust store,
+not an injected-failure simulation.
 
 ## Interpretation
 

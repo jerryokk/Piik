@@ -1,0 +1,23 @@
+/* ---------- interaction and legibility constraints ---------- */
+
+/* Revealing a room password must not change its field geometry. */
+.lr-input.is-password { min-width: min(260px, 100%); }
+
+@media (max-width: 640px) {
+  /* Pawn drill-down: the shared .lr-row column stack breaks this card —
+     column + wrap fans the children into off-screen side-by-side columns and
+     the meter's 100% flex-basis inflates the block axis. Keep it row-wrapped
+     so the meter takes its own full-width line at natural height and the
+     more/close buttons stay in flow inside the card. */
+  .lr-pawn-detail { flex-direction: row; align-items: center; }
+  .lr-pawn-detail .lr-meter { flex: 1 1 100%; align-content: start; }
+  /* Action row: let the buttons wrap to two rows once three-across can no
+     longer hold each label on a single line (stops orphan-character wraps). */
+  .lr-group-actions .lr-comic-tip-wrap,
+  .lr-group-actions > .lr-btn { flex-basis: 112px; }
+}
+
+
+@media (max-width: 640px) {
+  .lr-tv-screen .lr-comic-tip { max-width: min(62vw, var(--tooltip-max-width, calc(100vw - 16px))); }
+}

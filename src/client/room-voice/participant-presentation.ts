@@ -1,5 +1,5 @@
 import type { RoomVoiceState } from "../../shared/protocol";
-import type { PawnVoice } from "../components/living/Pawn";
+import type { PawnVoice } from "../ui/components/people/Pawn";
 import type { CopyKey } from "../ui/copy";
 import type { GlyphName } from "../ui/icons";
 

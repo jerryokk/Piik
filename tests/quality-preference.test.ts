@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_QUALITY_SETTINGS } from "../src/shared/protocol";
-import { readPreferredQuality, savePreferredQuality } from "../src/client/lib/quality-preference";
+import { readPreferredQuality, savePreferredQuality } from "../src/client/lib/preferences/browser-quality-preference";
 
 afterEach(() => vi.unstubAllGlobals());
 

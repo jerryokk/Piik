@@ -1,0 +1,32 @@
+[package]
+name = "piik-launcher"
+description = "The App launcher page and API, its saved preferences and App entry URLs."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+axum.workspace = true
+flate2.workspace = true
+futures-util.workspace = true
+piik-app-config.workspace = true
+piik-diagnostics.workspace = true
+piik-failure.workspace = true
+piik-lan.workspace = true
+piik-loopback.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+reqwest.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

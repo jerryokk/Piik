@@ -1,8 +1,13 @@
 # Configuration And Ports
 
 The tracked [`.env.example`](../../.env.example) is the executable schema
-companion; `internal/server/config` is validation truth. Keep real values in the
+companion; the `piik-config` and `piik-app-config` crates are validation truth. Keep real values in the
 service secret store or an untracked access-restricted environment file.
+
+`piik-server` reads an optional `.env` from its working directory; variables
+already present in the process environment win over the file. `--check-config`
+validates the resulting environment, including the TLS pair, and exits;
+`--debug` enables [diagnostics](#diagnostics).
 
 ## Ownership
 
@@ -21,9 +26,9 @@ service secret store or an untracked access-restricted environment file.
 | Variable | Contract |
 | --- | --- |
 | `PIIK_ENV` | `development` or `production`, default `development`; set `production` for server deployments to enable production validation and Secure site-access cookies for configured HTTPS destinations. |
-| `LISTEN_HOST` | Defaults to `0.0.0.0`; bare-metal production normally uses `127.0.0.1`. |
-| `PORT` | Positive TCP port, default `8787`; the tracked release wrapper supports only that default. |
-| `PUBLIC_BASE_URL` | Exact public HTTP(S) origin; production requires HTTPS. |
+| `LISTEN_HOST` | Defaults to `0.0.0.0`; production behind a local reverse proxy normally uses `127.0.0.1`. |
+| `PORT` | Positive TCP port, default `8787`. |
+| `PUBLIC_BASE_URL` | Exact public HTTP(S) origin, default `http://localhost:<PORT>` when unset; an explicit empty value is invalid. Production requires HTTPS. |
 | `ALLOWED_ORIGINS` | Unset or empty follows `PUBLIC_BASE_URL`. A non-empty comma-separated list replaces that default; include every trusted browser origin (scheme, host and port). Wildcard is invalid. |
 | `TLS_SELF_SIGNED` | Optional direct HTTPS, default `false`. `true` generates an in-memory certificate for the exact `PUBLIC_BASE_URL` host; it changes on restart and requires browser confirmation. Requires an HTTPS public origin; cannot combine with certificate files. |
 | `TLS_CERT_FILE` / `TLS_KEY_FILE` | Optional PEM certificate chain and private key, configured together. Direct HTTPS uses the existing `LISTEN_HOST`/`PORT`. Startup and `--check-config` validate the pair, host and validity dates. Files are read at startup; renewal and restart remain the operator's responsibility. |
@@ -31,7 +36,7 @@ service secret store or an untracked access-restricted environment file.
 | `ROOM_DATABASE_PATH` | Hosted defaults to `rooms.sqlite` in its working directory when unset or blank. An explicit absolute file path selects another SQLite file; `:memory:` opts into process-memory room authority. App Local remains in memory. |
 | `ROOM_EMPTY_TIMEOUT_SECONDS` | Integer `0..31536000`, default `0` (disabled). Positive values enable empty-room expiry and oldest-empty reclamation under allocation pressure. Apply at Server startup; App Local retains its process-only lifecycle. |
 | `MAX_VIEWERS_PER_ROOM` | `1..20`, default `20`; excludes the Host. |
-| `ENDPOINT_MEDIA_COPY_CAPACITY` | Site's initial room forwarding limit `1..3`, default `2`; capable pages can adjust room and personal limits. |
+| `ENDPOINT_MEDIA_COPY_CAPACITY` | Shared endpoint steady-copy cap `1..3`, default `2`. |
 | `STUN_URLS` | Comma-separated advertised `stun:` discovery URLs; at least one is required in production. These are not local bind addresses and may use an unproxied DNS name separate from the Web origin. |
 | `STUN_LISTEN_HOST` | Hosted IPv4 STUN bind address, default `0.0.0.0` when `STUN_URLS` is configured; independent of HTTP `LISTEN_HOST`. App Local configuration owns its separate LAN endpoint below. |
 | `NAT_PREDICTION_ENABLED` | Optional bounded NAT prediction capability, default `false`; requires an ordinary `STUN_URLS` endpoint on UDP 3478. Hosted startup binds UDP 3479/3480 before advertising the capability. Current pages use it automatically on P2P-first sites; ordinary ICE remains available without it. Firewall reachability remains an operator requirement. |
@@ -39,25 +44,19 @@ service secret store or an untracked access-restricted environment file.
 ### Room capacity
 
 `MAX_VIEWERS_PER_ROOM` counts authenticated Viewers per room, excluding the Host.
-Self-hosted Server accepts `1..20` and defaults to `20`, matching the App and
-deployment examples. Apply changes by restarting the
-Server (with Compose, run `docker compose up -d` to recreate it after editing
-`.env`). Restart interrupts active connections; excess Viewers receive `ROOM_FULL`
-when joining again. App Local and public-invite modes stay fixed at `20`.
-
-Values above `20` are rejected at startup. This is also a wire-contract bound,
-so increasing it in source requires a compatibility and capacity review. More
-Viewers can add relay hops, routing wait and total media load. The setting does
-not increase the per-endpoint copy cap or guarantee available bandwidth.
+Apply changes by restarting the Server; restart interrupts active connections,
+and excess Viewers receive `ROOM_FULL` when joining again. App Local and
+public-invite modes stay fixed at `20`. The `20` ceiling is also a wire-contract
+bound, so raising it in source changes the protocol with every side
+([versioning](./versioning.md)) and warrants a capacity review.
+More Viewers add relay hops, routing wait and total media load; the setting does
+not raise the per-endpoint copy cap or guarantee available bandwidth.
 
 ### Room retention
 
 Public sites can use `ROOM_EMPTY_TIMEOUT_SECONDS=3600` to release unused codes.
-Only rooms without authenticated participants expire; watching, paused sharing
-and idle chat are protected. When all codes are used, the oldest empty room may
-be reclaimed before the hour. Expired rooms and invitations must be recreated.
-The default `0` preserves existing indefinite-room behavior. The complete
-lifecycle and restart semantics belong to [rooms/access](./rooms-access.md#optional-empty-room-retention).
+Expired rooms and invitations must be recreated. Expiry, early reclamation and
+restart semantics belong to [rooms/access](./rooms-access.md#optional-empty-room-retention).
 
 ### Media fallback
 
@@ -70,52 +69,64 @@ Automatic SFU fallback runs inside the Hosted process when `SFU_UDP_PORT` is set
 | `SFU_PUBLIC_IP` | Optional advertised IPv4 address or DNS hostname for a host behind NAT. A hostname resolves at startup and every minute; new media connections use the latest successful IPv4 result without restarting Piik. Forward the same UDP port as `SFU_UDP_PORT`. Read only when SFU is enabled. |
 | `SFU_ONLY` | `false` by default. `true` requires `SFU_UDP_PORT` and sends every room through SFU, without Peer candidates or background P2P convergence. Applies after Server restart. |
 
-SFU control uses the application's authenticated signaling connection. No
+SFU control uses the application's authenticated signaling connection; no
 separate control origin or infrastructure credentials are configured. Local and
-public-link App construction create no SFU listener. The relay does not
-provide application E2EE.
+public-link App modes create no SFU listener. The relay does not provide
+application E2EE.
 
 For a P2P-only Server, leave `SFU_UDP_PORT` blank. Room authority, signaling,
 configured STUN and peer relays remain; no media-server fallback is possible.
 The server enforces this even if a Host requests hybrid mode. There is no
-separate `SFU_ENABLED` flag to conflict with the listener configuration.
+separate `SFU_ENABLED` flag.
 
 With `SFU_ONLY=true`, the page shows a locked **Server media** policy in place of
-P2P settings. An older page requesting Privacy mode is refused before sharing;
-refresh it or turn Privacy mode off. Capacity exhaustion and connection failure
-use the existing bounded SFU admission/recovery path, never a P2P escape.
-This policy needs sufficient server bandwidth and a working UDP route; it is not
-a TURN/TCP fallback. App Local/public-link and the public Demo remain P2P-only.
+P2P settings. A page requesting Privacy mode is refused before sharing.
+Capacity exhaustion and connection failure use the existing bounded SFU
+admission/recovery path, never a P2P escape. This policy needs sufficient server
+bandwidth and a working UDP route; it is not a TURN/TCP fallback.
 
-The SQLite parent directory must exist and be writable. The systemd template
-sets `/var/lib/piik/rooms.sqlite` under its managed state directory; the
-container image sets `/home/nonroot/rooms.sqlite` under its writable data
-directory. Keep the existing database path and data across application updates.
+The SQLite parent directory must exist and be writable. Keep the existing database path and data across application updates.
 Room authority has no idle expiry by default; the separate site-access cookie keeps its
 24-hour idle lifetime within one service run. Restarting the App or Server
 requires site-password entry again; saved rooms and invitation grants are restored.
 
-Removed access, room TTL/lease, endpoint-tier, room-rollout, and TURN variables fail
-startup even when blank. A present `NODE_ENV` fails the same way, so a stale
-environment file cannot silently drop a deployment out of production. The
-private deployment uses its scoped atomic updater. Supported public upgrades and
-any compatibility handling follow the active [versioning contract](./versioning.md).
+Replaced TURN, peer-assisted, relay-edge, access-password and room TTL/lease
+variables fail startup even when blank, naming the replacement where one exists.
+A present `NODE_ENV` fails the same way, so a stale environment file cannot
+silently drop a deployment out of production. Replacing a package is covered by
+[versioning](./versioning.md).
 
 ## Piik App Configuration
 
-Piik App stores `Piik/client.json` under the operating system's user configuration
-directory (`%APPDATA%` on Windows, `~/Library/Application Support` on macOS,
-and `$XDG_CONFIG_HOME` or `~/.config` on Linux). The App manages its `version`
-schema field. The user settings are:
+Piik App stores `%APPDATA%\Piik\client.json` with a strict `version` schema
+field. The user settings are:
 
 | Setting | Contract |
 | --- | --- |
-| `site` / `sites` | The first approved Piik Site origin and optional additional origins. Local confirmation or explicit `--site` adds approval without replacing other sites; the launcher revokes each independently. Existing single-site configuration remains valid. |
+| `sites` | Approved Piik Site origins; the first is the startup Site. Local confirmation or explicit `--site` adds approval without replacing the others, and the launcher revokes each independently. |
 | `localAccessPassword` | Empty by default. Optional password for the App's Local room authority, with the same exact-match behavior as `SITE_ACCESS_PASSWORD`. It is separate from a hosted site's password. |
 
-Before rolling back to an App that supports only one approved Site, revoke all
-but one Site in the current launcher. This removes the additional `sites` field
-that older Apps cannot read, while preserving the remaining approval and password.
+Optional preferences live beside the configuration file and never hold device
+or room credentials; removing one restores its default without changing saved
+settings:
+
+- `<config-path>.mode` remembers the last mode confirmed with the launch button.
+  Without a valid Local/Public preference the public invitation link is
+  selected; choosing a mode does not start it until confirmed.
+- `<config-path>.startup-site` records the starred approved Site that opens on
+  ordinary startup. Only one origin opens automatically; revoking it clears the
+  star, other approvals leave it intact, unstarring restores launcher entry, and
+  explicit CLI mode flags take precedence.
+- `<config-path>.quality` holds App-wide picture/audio quality preferences, read
+  on the next launch. The [media owner](./media-quality.md#video-profiles) defines
+  when they apply.
+
+Selecting Local or Public Link, including through the CLI, preserves the saved
+Sites and their allowed App origins; only local approval/revocation or `--site`
+changes them. A Site can use native capabilities while the App waits in its
+launcher; it does not need a Local room service. Share quality, room access
+policy, language and theme are configured in the shared Web UI; decorative
+motion follows the system's reduced-motion preference.
 
 For public invitations, the optional `PIIK_STUN_URLS` environment variable
 replaces all built-in STUN destinations. It accepts a comma-separated list of
@@ -123,100 +134,72 @@ up to six `stun:` URLs, using the Server's URL validation. With three or more
 destinations, the second and third also supply NAT prediction observations;
 one or two use ordinary ICE only. Empty or unset retains the defaults. Local
 LAN mode ignores this setting, and an approved Site supplies its own ICE
-configuration. No settings panel or additional media transport is involved.
+configuration. For example, in PowerShell set
+`$env:PIIK_STUN_URLS = 'stun:your-stun.example:3478'` before running
+`./piik-app.exe`. Use a service you trust: STUN sees participants' public
+network addresses, but does not receive shared media.
 
 LAN mode retains the Host's HTTP loopback entry and serves HTTPS on the selected
 LAN IPv4 address at the same TCP port. Both listeners share one HTTP server,
 room authority and shutdown owner. Its self-signed certificate and private key
-live only in memory for that run; the App terminal displays the SHA-256
-fingerprint for manual confirmation. No CA is installed and no TLS files are saved.
-The selected LAN address also runs the existing Binding-only STUN service on
-the App's numeric UDP port (default `8787`). This lets Browsers
-discover usable addresses on routed virtual LANs without relying on multicast
-name discovery or contacting a public STUN service. HTTP and STUN have one
-application startup/shutdown owner; public-link mode does not bind this LAN
-endpoint. Allow Piik through the firewall on the selected network for both TCP
-and UDP; STUN carries address discovery, not shared media.
+live only in memory for that run; Viewers confirm it in the browser, and its
+SHA-256 fingerprint is recorded in App diagnostics when Debug launch is enabled.
+No CA is installed and no TLS files are saved. The selected LAN address also
+runs the existing Binding-only STUN service on the App's numeric UDP port
+(default `8787`), so Browsers discover usable addresses on routed virtual LANs
+without multicast name discovery or a public STUN service. HTTP and STUN share
+one application startup/shutdown owner. Public-link mode does not bind this
+LAN endpoint. Allow Piik through the firewall on the selected network for both
+TCP and UDP; STUN carries address discovery, not shared media.
 
-For example, in PowerShell, set `$env:PIIK_STUN_URLS = 'stun:your-stun.example:3478'`
-before running `./piik-app.exe`. Use a service you trust: STUN sees participants'
-public network addresses, but does not receive shared media.
+The launcher selects a sole active address or sole private IPv4 address
+automatically. With several choices it shows interface names and IPs; an
+ambiguous choice must be selected before launch. Selection applies to this
+launch, is revalidated at startup, and sets the local HTTPS listener and
+invitation origin; ICE remains free to use available media interfaces. Public
+Link and use through an approved Site require no local address selection.
 
 The Site's App button requests local confirmation for the page's exact origin.
-The `--site` automation input defaults to HTTPS when the scheme is omitted;
-explicit HTTP or HTTPS is preserved. Both save the normalized origin and reject
-credentials, room paths, queries and fragments. The App does not probe protocols
-or downgrade a failed HTTPS connection to HTTP.
-
-The launcher remembers the last mode confirmed with the launch button. This
-optional preference lives beside the configuration as `client.json.mode` (or
-`<custom-config-path>.mode`); removing it restores the initial selection without
-changing saved settings. Without a valid Local/Public preference, the public
-invitation link is selected. Choosing a mode does not start it until confirmed.
-Local mode remains available for the same network.
-The star beside an approved Site selects it as the next ordinary startup page.
-This preference lives in `<config-path>.startup-site`, separately from access
-permission. Only one approved origin opens automatically; revoking that origin
-clears the star, while approving or revoking other sites leaves it intact.
-Unstarring restores launcher entry, and explicit CLI mode flags retain precedence.
-Selecting Local or Public Link, including through the CLI, preserves the saved
-Sites and their allowed App origins; only local approval/revocation or `--site`
-changes them. A Site can use native capabilities while the App waits in its
-launcher; it does not need a Local room service.
-For Local mode, the launcher selects a sole active address or sole private IPv4
-address automatically. With several choices it shows interface names and IPs;
-an ambiguous choice must be selected before launch. `--lan-address` preselects
-an active address. Selection applies to this launch and is revalidated at startup.
-It sets the local HTTPS listener and invitation origin; the Host keeps its
-HTTP loopback entry and ICE remains free to use available media interfaces. Public Link
-and use through an approved Site require no local address selection.
-
-Command-line options select entry and local runtime behavior:
+The `--site` input defaults to HTTPS when the scheme is omitted; explicit HTTP
+or HTTPS is preserved. Both save the normalized origin and reject credentials,
+room paths, queries and fragments. The App does not probe protocols or
+downgrade a failed HTTPS connection to HTTP.
 
 | Option | Purpose |
 | --- | --- |
 | `--site <origin>` / `--local` | Save and use a Site, or select the self-contained Local mode. Mutually exclusive. |
 | `--link` | Create a public Viewer invitation for Local mode. |
 | `--config <path>` | Select another App configuration file. |
-| `--lan-address <IPv4>` / `--port <port>` | Override the Local invitation address or web port (default `8787`). |
+| `--lan-address <IPv4>` / `--port <port>` | Preselect the Local invitation address or override the web port (default `8787`). |
 | `--capture-process <path>` / `--tunnel-process <path>` | Override packaged native capture or public tunnel helpers. Ordinary installations use the packaged paths. |
 | `--debug` / `--log-dir <path>` | Enable diagnostics or choose their destination as described below. |
-
-Share quality, room access policy, language and theme are configured in
-the shared Web UI. Decorative motion follows the system's reduced-motion preference.
-App-wide picture/audio quality preferences use `<config-path>.quality`; removing
-that optional file resets them on the next App launch. It contains no device or
-room credentials. The [media owner](./media-quality.md#video-profiles) defines when
-preferences apply; older Apps ignore the file and keep reading `client.json`.
 
 ## Diagnostics
 
 Normal Server logs record startup identity, listener and enabled services,
-unexpected failures, orderly shutdown and any available release found by the
-single background startup check. Detailed room/ICE/media traces require Debug.
+unexpected failures and orderly shutdown. Detailed room/ICE/media traces require Debug.
 
 Diagnostics are local and opt-in. Enable them **before** reproducing the problem:
 
 | Surface | Enable | Export |
 | --- | --- | --- |
-| App | Enable **Debug launch** with the small chip icon after the theme control in the mode selector, or start with `--debug` / `PIIK_DEBUG=client` | Press `D` in the terminal for a ZIP |
+| App | Enable **Debug launch** with the small chip icon after the theme control in the mode selector, or start with `--debug` / `PIIK_DEBUG=client` | Rotated logs in the log directory; a failed run also exports a ZIP |
 | Browser Host/Viewer | Open **Help → Debug** after the theme control and confirm the reload, or add `?debug=1` before any invitation fragment | **Help → Web report** downloads the browser report |
-| Hosted Server | Start with `--debug`, `PIIK_DEBUG=server` or `PIIK_DEBUG=route` | On Unix, `kill -USR1 <pid>`; also exported at orderly shutdown |
+| Hosted Server | Start with `--debug`, `PIIK_DEBUG=server` or `PIIK_DEBUG=route` | Exported at orderly shutdown |
 
 App **Debug launch** starts App collection immediately, including while waiting
 for a Site. Pages subsequently opened from the launcher also collect Browser
 logs; already-open Site pages use their own Debug control. It records Native
-capability results and subsequent capture, connection and local-server activity.
-Use `--debug` for failures before the launcher opens. This choice does not change
-the saved App configuration.
-When bypassing the mode selector, `--debug` and `PIIK_DEBUG=client` enable backend
-collection; enable the Browser control separately for browser-side diagnosis.
+capability results and subsequent capture, connection and local-server activity,
+and does not change the saved App configuration. Use `--debug` for failures
+before the launcher opens. When bypassing the mode selector, `--debug` and
+`PIIK_DEBUG=client` enable backend collection only; enable the Browser control
+separately for browser-side diagnosis.
 
 The Browser entry reloads the current page so collection includes connection
-startup. The opt-in follows App launch and room entry. Enabling it keeps the
-current URL parameters and any invitation fragment, but interrupts active
-sharing/viewing; enable it before reproducing the problem. Reports remain local
-until exported and shared by the user.
+startup. Enabling it keeps the current URL parameters and any invitation
+fragment, but interrupts active sharing/viewing. Reports remain local until
+exported and shared by the user.
 
 Server Debug is controlled by its startup environment or CLI, never by a remote
 page or room role. Browser `?debug=1` only enables that page's local collection;
@@ -228,20 +211,15 @@ Browser/App cooperation, include both from the same reproduction. Exporting
 either report does not stop an active share or upload anything. Browser export
 also remains available as `await window.__PIIK_DEBUG__.export()` in DevTools.
 
-App logs go to `logs` beside the executable, falling back to `Piik/logs`
-in the OS user-cache directory when that default is unwritable. The TUI shows
-the actual path and the exported ZIP. `--log-dir` overrides
-`PIIK_LOG_DIR`; an explicit directory must be writable. Choosing a
-directory alone does not enable collection. Non-interactive Apps export at
-orderly shutdown; a returned App error also exports before the terminal closes.
-On App, `PIIK_DEBUG=route` alone retains console route
-tracing; use `--debug` for file collection and the `D` action.
+App logs go to `logs` beside the executable, falling back to
+`%LOCALAPPDATA%\Piik\logs` when that directory is not writable. `--log-dir`
+overrides `PIIK_LOG_DIR`; an explicit directory must be writable. Choosing a
+directory alone does not enable collection.
 
-Hosted logs use `PIIK_LOG_DIR`, otherwise systemd `LOGS_DIRECTORY`,
-otherwise `logs` under the working directory. The service unit supplies
-`/var/log/piik` with mode `0700`. Normal service notices remain in the
-journal; detailed dependency records go into the report. Windows Server has no
-Unix signal trigger; forced process termination cannot create a final snapshot.
+Hosted logs use `PIIK_LOG_DIR`, otherwise a service manager's `LOGS_DIRECTORY`,
+otherwise `logs` under the working directory. Normal service notices remain on
+the console; detailed dependency records go into the report. The Server has no
+on-demand export signal; forced process termination cannot create a final snapshot.
 
 The report combines operation history and existing runtime evidence:
 
@@ -249,11 +227,11 @@ The report combines operation history and existing runtime evidence:
   profiles, source kind, codec/adapter selection and cancellation or failure.
   Async quality preparation retains that ID until its actual completion.
 - Capture process start/exit/EOF and streamed stderr include useful failure
-  causes and system/HRESULT codes. Windows samples its existing WebRTC encoder
-  observer during processing: input/output FPS, actual size, bitrate, encode
-  time/usage, QP when available, drops, limitation flags and adaptation counts.
-  Those are VSE counters, not a complete account of WGC mailbox overwrites.
-- Pion connection/ICE/DTLS and media-component diagnostics are included.
+  causes and system/HRESULT codes. The Windows encoder observer is sampled
+  during processing: input/output FPS, actual size, bitrate, encode time/usage,
+  QP when available, drops, limitation flags and adaptation counts. Those
+  counters do not fully account for WGC mailbox overwrites.
+- str0m connection/ICE/DTLS and media-layer diagnostics are included.
   Existing RTP/BWE/allocation observations, packet queue/drop counters,
   group demand/attachment changes and gateway/STUN outcomes explain delivery
   without adding a media-control loop or a new per-connection polling timer.
@@ -261,24 +239,21 @@ The report combines operation history and existing runtime evidence:
   operations, meaningful error messages/stacks/causes and existing RTCStats.
   Pool observations distinguish native carrier reports, actual output and its
   assigned producer. Export adds Browser/platform metadata; diagnostic collection
-  does not replace media APIs or control transport.
-  Each RTC sample includes a compact ICE summary ahead of the bounded raw stats:
-  reported pair states and selected-path type, prediction provenance, check
-  responses and RTT when available. Pair counts describe that sample, not route
-  attempts or a connection-success rate.
+  does not replace media APIs or control transport. Each RTC sample includes a
+  compact ICE summary ahead of the bounded raw stats: reported pair states and
+  selected-path type, prediction provenance, check responses and RTT when
+  available. Pair counts describe that sample, not route attempts or a
+  connection-success rate.
 
-Each Go component keeps an 8 MiB current log and one 8 MiB backup. ZIPs contain
-these retained logs, a report marker, selected startup context, build/module and
-platform metadata, Go memory counters, sampled allocation profile
-(`heap.pprof`) and aggregate goroutine stacks. These are not raw process-memory
-or C++ memory dumps. A failed optional collector leaves useful files available;
+Each Rust component keeps an 8 MiB current log and one 8 MiB backup. ZIPs contain
+these retained logs, a report marker, selected startup context, build and
+platform metadata, and process memory counters (`memory.json`), not raw
+process-memory or C++ memory dumps. A failed optional collector leaves useful files available;
 `metadata.json` lists included files, errors and partial status. ZIP write/disk
 failure still reports an export failure. Rotation and preexisting history are
 identified; retained logs do not claim a complete session history.
-
 Exported ZIPs remain until the user moves or deletes them; rotation manages only
-the current logs. Repeated exports and Debug-mode error exits accumulate archives,
-so manage that directory's disk usage separately.
+the current logs, so manage that directory's disk usage separately.
 
 Browser retains up to 8,192 events and 8 MiB of compact event data in the current
 page. Reports identify retained sequence/time ranges, evicted/truncated events
@@ -294,8 +269,8 @@ payloads, arbitrary config/environment files and raw process-memory contents
 are not collected. Browser window titles and participant display names are
 omitted. Debug detail has CPU/I/O cost and should be enabled for investigation.
 
-The [research comparison](../research/diagnostic-feedback.md) records the mature
-project references and the reasons for this collection boundary.
+This boundary follows what mature projects collect: enough to reproduce a
+reported failure, nothing that identifies the person or exposes unrelated data.
 
 ## Public And Private Ports
 
@@ -313,17 +288,15 @@ contract.
 
 When `NAT_PREDICTION_ENABLED=true`, the server derives
 `stun:<same-hostname>:3479` and `:3480` from the first ordinary STUN authority
-on UDP 3478. Current pages use the advertised capability automatically unless
-the site requires SFU-only media. It adds no media route or third-party service. It needs both
-cloud security-group rules and the host firewall. Piik
-binds every required UDP listener before opening room persistence or accepting
-signaling; a bind failure rolls back all newly owned sockets. Close and End
-retire these listeners with the application. No other service may own the same
-listening ports. Opening a cloud port without a listener has no effect, and local
-binding alone does not prove external reachability. Disable the capability
-before removing firewall rules. Same-IP ports
-expose destination-port allocation behavior; a full RFC 5780 alternate-address
-test requires a second public IPv4.
+on UDP 3478. It adds no media route or third-party service, and needs both
+cloud security-group rules and the host firewall. Piik binds every required UDP
+listener before opening room persistence or accepting signaling; a bind failure
+rolls back all newly owned sockets, and shutdown retires these listeners with
+the application. No other service may own the same listening ports. Opening a
+cloud port without a listener has no effect, and local binding alone does not
+prove external reachability. Disable the capability before removing firewall
+rules. Same-IP ports expose destination-port allocation behavior; a full
+RFC 5780 alternate-address test requires a second public IPv4.
 
 ## Bounds
 

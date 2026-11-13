@@ -5,8 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { LauncherForm } from "../src/client/components/living/LauncherForm";
-import { siteEntryOrigin } from "../src/client/components/living/SiteAddressEntry";
+import { LauncherForm } from "../src/client/ui/components/shell/LauncherForm";
+import { siteEntryOrigin } from "../src/client/ui/components/shell/SiteAddressEntry";
 import { clientLaunchURL } from "../src/client/lib/session";
 
 // Run the page's actual state-read effect, including cleanup, without a DOM.
@@ -19,7 +19,7 @@ function collect(node: ts.Node): void {
   if (ts.isVariableDeclaration(node) && /^launcher.*Schema$/.test(node.name.getText(source))) {
     declarations.push(`const ${node.getText(source)};`);
   }
-  if (ts.isFunctionDeclaration(node) && ["beginStateChange", "changeSite", "approveSite", "enableDebug", "launchURL", "launch"].includes(node.name?.text ?? "")) {
+  if (ts.isFunctionDeclaration(node) && ["beginStateChange", "changeSite", "approveSite", "enableDebug", "launch"].includes(node.name?.text ?? "")) {
     declarations.push(node.getText(source));
   }
   if (ts.isCallExpression(node) && node.expression.getText(source) === "useEffect"
@@ -39,46 +39,41 @@ const saved = {
   revision: "test", version: "development", debug: false,
   lan: { addresses: [{ address: "192.0.2.1", name: "LAN" }], selected: "192.0.2.1" },
 };
-const response = (state: typeof saved & { detail?: string; target?: string } = saved) => ({ ok: true, status: 200, json: async () => state });
+const response = (state: typeof saved & { detail?: string } = saved) => ({ ok: true, status: 200, json: async () => state });
 
-function mount(fetch: ReturnType<typeof vi.fn>, manualSite = false, { startup = false }: { startup?: boolean } = {}) {
+function mount(fetch: ReturnType<typeof vi.fn>, manualSite = false) {
   const state: Record<string, unknown> = {};
   const setters = Object.fromEntries([
-    "Mode", "Modes", "LocalAccessPassword", "Lan", "Version", "ControlPort", "Target", "Starting", "Sites", "StartupSite", "StartupMode", "OwnedSites",
+    "Mode", "Modes", "LocalAccessPassword", "Lan", "Version", "ControlPort", "Target", "Starting", "Sites", "StartupSite",
     "AppDebug", "Debug", "Error", "Loading", "Build", "RemoteControlPrototype",
     "SiteBusy", "SiteError", "DebugBusy", "DebugError", "Reload",
   ].map(name => [`set${name}`, vi.fn((value: unknown) => {
     state[name] = typeof value === "function" ? value(state[name]) : value;
   })]));
-  const window = Object.assign(new EventTarget(), { location: { replace: vi.fn(), search: startup ? "?start=1" : "" } });
-  const timers = new Map<number, { callback: () => void; delay: number }>();
+  const window = Object.assign(new EventTarget(), { location: { replace: vi.fn() } });
+  const timers = new Map<number, () => void>();
+  const saveTimers = new Map<number, () => void>();
   let nextTimer = 0;
   const actions = runInNewContext(executable, {
-    ...setters, z, fetch, window, URLSearchParams,
+    ...setters, z, fetch, window, AbortController,
     stateChanges: { current: { revision: 0, pending: 0 } },
     siteBusy: false, debugBusy: false, starting: false, sites: saved.sites, manualSite, openOnApproval: false,
     mode: "link", lang: "en", vis: false, debug: false, appDebug: false, localAccessPassword: "",
-    consoleLanguage: () => "en", clientLaunchURL, currentThemePreference: () => null, hasCopyPreference: () => false, controlPort: undefined, t: (key: string) => key,
-    AbortController,
+    consoleLanguage: () => "en", launchURL: (target: string) => target, t: (key: string) => key,
     setTimeout: (callback: () => void, delay: number) => {
-      const id = ++nextTimer;
-      timers.set(id, { callback, delay });
-      return id;
+      // 750 is the state-change debounce these tests drive; 8000 aborts a
+      // stalled save and is not fired by them.
+      if (delay === 8000) { saveTimers.set(++nextTimer, callback); return nextTimer; }
+      expect(delay).toBe(750);
+      timers.set(++nextTimer, callback);
+      return nextTimer;
     },
-    clearTimeout: (id: number) => timers.delete(id),
+    clearTimeout: (id: number) => { timers.delete(id); saveTimers.delete(id); },
   }) as { cleanup(): void; changeSite(site: string, setting?: "site" | "startup-site", starAfterApproval?: boolean, allowed?: boolean): Promise<boolean>; approveSite(site: string): Promise<void>; enableDebug(): Promise<void>; launch(event: { preventDefault(): void }): Promise<void> };
-  return { state, setters, ...actions, navigate: window.location.replace, focus: () => window.dispatchEvent(new Event("focus")),
+  return { state, setters, ...actions, saveTimers, navigate: window.location.replace, focus: () => window.dispatchEvent(new Event("focus")),
     retry: () => {
-      const entry = [...timers].find(([, timer]) => timer.delay === 750);
-      expect(entry).toBeDefined();
-      const [id, { callback }] = entry!;
-      timers.delete(id);
-      callback();
-    },
-    expireRequest: () => {
-      const entry = [...timers].find(([, timer]) => timer.delay > 750);
-      expect(entry).toBeDefined();
-      const [id, { callback }] = entry!;
+      expect(timers.size).toBe(1);
+      const [id, callback] = [...timers][0]!;
       timers.delete(id);
       callback();
     },
@@ -86,41 +81,14 @@ function mount(fetch: ReturnType<typeof vi.fn>, manualSite = false, { startup = 
 }
 
 describe("App launcher state recovery", () => {
-  it("offers an available mode after the saved startup mode becomes unavailable", async () => {
-    const page = mount(vi.fn().mockResolvedValue({
-      ok: true, status: 200, json: async () => ({
-        ...saved, modes: ["local"], startupMode: "link", detail: "public-link helper unavailable",
-      }),
-    }), false, { startup: true });
-    try {
-      await settle();
-      expect(page.state).toMatchObject({ Mode: "local", StartupMode: "link", Error: { kind: "launch" } });
-      expect(page.navigate).not.toHaveBeenCalled();
-    } finally { page.cleanup(); }
-  });
-  it("replaces a failed launch response with the running App's state on return", async () => {
-    const fetch = vi.fn().mockResolvedValueOnce(response(saved))
-      .mockRejectedValueOnce(new Error("Startup response disconnected"));
-    const page = mount(fetch);
-    try {
-      await settle();
-      await page.launch({ preventDefault() {} });
-      expect(page.state.Error).toEqual({ kind: "launch" });
-      fetch.mockResolvedValueOnce(response({ ...saved, target: "http://127.0.0.1:8791/" }));
-      page.focus(); await settle();
-      expect(page.state).toMatchObject({ Target: "http://127.0.0.1:8791/", Starting: false, Error: null });
-      expect(page.navigate).not.toHaveBeenCalled();
-    } finally { page.cleanup(); }
-  });
   it.each([
     ["v2.4.1", "v2.4.1"],
     ["development", "development (aaaaaaa)"],
-  ])("shows the App build identity for %s without changing update inputs", async (version, label) => {
+  ])("shows the App build identity for %s", async (version, label) => {
     const revision = "a".repeat(40);
     const page = mount(vi.fn(async () => response({ ...saved, version, revision })));
     await settle();
     expect(page.state.Version).toBe(label);
-    expect(page.state.Build).toEqual({ version, revision, packageTarget: undefined });
     page.cleanup();
   });
 
@@ -139,7 +107,7 @@ describe("App launcher state recovery", () => {
     expect(page.state).toMatchObject({ Starting: false, Error: { kind: "launch", detail: "Startup failed" } });
     fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ target: "https://room.example/#piik-client=1" }) });
     await page.launch(event);
-    expect(page.navigate).toHaveBeenCalledWith("https://room.example/#piik-client=1&piik-lang=en&piik-mode=text&piik-theme=system");
+    expect(page.navigate).toHaveBeenCalledWith("https://room.example/#piik-client=1");
     page.cleanup();
   });
 
@@ -154,7 +122,6 @@ describe("App launcher state recovery", () => {
     expect(html).toContain('value="saved password"');
     expect(html).toMatch(/type="submit"[^>]*aria-label="(?:Retry|重试)"/);
     expect(html).toContain(saved.sites[0]);
-    expect(html).toContain('aria-pressed="false"');
   });
 
   it("reopens a healthy room without offering another mode or password", () => {
@@ -188,6 +155,25 @@ describe("App launcher state recovery", () => {
     expect(entries.map(entry => entry.origin)).toEqual([saved.sites[0], "http://127.0.0.1:8787"]);
   });
 
+  it("bounds a stalled site save so approval can retry", async () => {
+    type Result = { ok: boolean; status: number; json(): Promise<unknown> };
+    const fetch = vi.fn(async (_url?: string, _init?: { signal?: AbortSignal }): Promise<Result> => response());
+    const page = mount(fetch);
+    await settle();
+    // A save that never answers still releases the busy state once aborted.
+    fetch.mockImplementationOnce((_url?: string, init?: { signal?: AbortSignal }) => new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+    }));
+    const pending = page.changeSite("https://stalled.example");
+    await settle();
+    expect(page.state.SiteBusy).toBe(true);
+    expect(page.saveTimers.size).toBe(1);
+    page.saveTimers.get([...page.saveTimers.keys()][0]!)!();
+    expect(await pending).toBe(false);
+    expect(page.state.SiteBusy).toBe(false);
+    expect(page.saveTimers.size).toBe(0);
+  });
+
   it("selects only an HTTP(S) origin for explicit approval, including pasted full URLs", () => {
     expect(siteEntryOrigin(" PIIK.example:443 ")).toBe("https://piik.example");
     expect(siteEntryOrigin("https://piik.example/r/1234?lang=en#v=private-invitation")).toBe("https://piik.example");
@@ -208,7 +194,7 @@ describe("App launcher state recovery", () => {
     expect(page.state.SiteError).toBe("client.connect.saveFailed");
     fetch.mockResolvedValueOnce(response({ ...saved, sites: [...saved.sites, "https://next.example"] }));
     await page.approveSite("https://next.example");
-    if (manual) expect(page.navigate).toHaveBeenCalledWith("https://next.example/#piik-client=1&piik-lang=en&piik-mode=text&piik-theme=system");
+    if (manual) expect(page.navigate).toHaveBeenCalledWith("https://next.example/#piik-client=1");
     else expect(page.navigate).not.toHaveBeenCalled();
     expect(fetch.mock.calls[1]).toEqual(["/api/client-launcher/site", expect.objectContaining({
       body: JSON.stringify({ site: "https://next.example", allowed: true }),
@@ -248,49 +234,6 @@ describe("App launcher state recovery", () => {
     page.cleanup();
   });
 
-  it("releases the approval page when saving a site never responds", async () => {
-    const fetch = vi.fn(async (_url: string, options?: { method?: string; signal?: AbortSignal }) => {
-      if (options?.method === "POST") return await new Promise<never>((_, reject) => {
-        options.signal?.addEventListener("abort", () => reject(new Error("request aborted")), { once: true });
-      });
-      return response();
-    });
-    const page = mount(fetch, true);
-    await settle();
-    const approval = page.approveSite("https://next.example");
-    await settle();
-    expect(page.state.SiteBusy).toBe(true);
-    page.expireRequest();
-    await approval;
-    expect(page.state).toMatchObject({ SiteBusy: false, SiteError: "client.connect.saveFailed" });
-    expect(page.navigate).not.toHaveBeenCalled();
-    fetch.mockResolvedValueOnce(response({ ...saved, sites: [...saved.sites, "https://next.example"] }));
-    await page.approveSite("https://next.example");
-    expect(page.navigate).toHaveBeenCalledWith("https://next.example/#piik-client=1&piik-lang=en&piik-mode=text&piik-theme=system");
-    expect(page.state.SiteBusy).toBe(false);
-    page.cleanup();
-  });
-
-  it("keeps committed approval when the startup preference body stalls", async () => {
-    const nextSite = "https://next.example";
-    const approved = { ...saved, sites: [...saved.sites, nextSite] };
-    const fetch = vi.fn(async (url: string, options?: { method?: string; signal?: AbortSignal }) => {
-      if (url.endsWith("/startup-site")) return { ...response(), json: () => new Promise<never>((_, reject) => {
-        options?.signal?.addEventListener("abort", () => reject(new Error("body aborted")), { once: true });
-      }) };
-      return response(options?.method === "POST" ? approved : saved);
-    });
-    const page = mount(fetch, true);
-    await settle();
-    const approval = page.changeSite(nextSite, "site", true);
-    await settle();
-    expect(page.state).toMatchObject({ Sites: approved.sites, StartupSite: "", SiteBusy: true });
-    page.expireRequest();
-    await expect(approval).resolves.toBe(false);
-    expect(page.state).toMatchObject({ Sites: approved.sites, StartupSite: "", SiteBusy: false, SiteError: "client.connect.saveFailed" });
-    page.cleanup();
-  });
-
   it("restores saved choices after a failed first read, then preserves unsaved edits on focus", async () => {
     const fetch = vi.fn(async () => response()).mockRejectedValueOnce(new Error("unavailable"));
     const page = mount(fetch);
@@ -307,7 +250,6 @@ describe("App launcher state recovery", () => {
     await settle();
     expect(page.state).toMatchObject({ Mode: "link", LocalAccessPassword: "edited", Lan: { selected: "192.0.2.2" } });
     expect(fetch).toHaveBeenCalledTimes(3);
-    expect(page.state.Build).toMatchObject({ version: saved.version, revision: saved.revision });
     page.cleanup();
   });
 
@@ -390,70 +332,4 @@ describe("App launcher state recovery", () => {
     expect(fetch).toHaveBeenCalledTimes(4);
     page.cleanup();
   });
-});
-
-it("enters the fresh App-owned startup result once with its current debug setting and port", async () => {
-  vi.stubGlobal("window", { location: { href: "http://127.0.0.1:39731/client?start=1" } });
-  const fetch = vi.fn().mockResolvedValueOnce(response({ ...saved, starting: true } as typeof saved));
-  const page = mount(fetch, false, { startup: true });
-  try {
-    await settle();
-    expect(page.navigate).not.toHaveBeenCalled();
-    const fresh = "http://127.0.0.1:45678/#piik-client=1";
-    fetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ ...saved, target: fresh, debug: true, controlPort: 39732 }) });
-    page.retry();
-    await settle();
-    const destination = new URL(page.navigate.mock.calls[0]![0]);
-    expect(destination.origin).toBe("http://127.0.0.1:45678");
-    expect(destination.searchParams.get("debug")).toBe("1");
-    expect(destination.searchParams.get("piik-client-port")).toBe("39732");
-    page.focus();
-    await settle();
-    expect(page.navigate).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls.every(call => !call[1]?.method)).toBe(true);
-  } finally {
-    page.cleanup();
-    vi.unstubAllGlobals();
-  }
-});
-
-it("leaves a failed owned startup available for manual retry", async () => {
-  const fetch = vi.fn().mockResolvedValueOnce(response({ ...saved, detail: "tunnel failed" }));
-  const page = mount(fetch, false, { startup: true });
-  try {
-    await settle();
-    expect(page.state.Starting).toBe(false);
-    expect(page.state.Error).toMatchObject({ kind: "launch" });
-    fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ target: "http://127.0.0.1:45678/" }) });
-    await page.launch({ preventDefault() {} });
-    expect(page.navigate).toHaveBeenCalledTimes(1);
-  } finally { page.cleanup(); }
-});
-
-it("clears an owned startup from the existing settings operation", async () => {
-  const fetch = vi.fn().mockResolvedValueOnce({
-    ok: true, status: 200, json: async () => ({ ...saved, startupMode: "link", ownedSites: ["https://current.example"] }),
-  });
-  const page = mount(fetch);
-  try {
-    await settle();
-    expect(page.state.StartupMode).toBe("link");
-    fetch.mockResolvedValueOnce(response(saved));
-    expect(await page.changeSite("", "startup-site")).toBe(true);
-    expect(JSON.parse(fetch.mock.calls[1]![1].body)).toEqual({ site: "" });
-    expect(page.state.StartupMode).toBeUndefined();
-    expect(page.navigate).not.toHaveBeenCalled();
-  } finally { page.cleanup(); }
-});
-
-
-it.each(["local", "link"] as const)("names the owned startup site and saved %s mode", mode => {
-  const html = renderToStaticMarkup(createElement(LauncherForm, {
-    mode, sites: saved.sites, startupSite: "", ownedStartup: mode,
-    onModeChange() {}, onToggleStartupSite() {}, onRemoveSite() {}, onSubmit() {},
-    localAccessPassword: "", onLocalAccessPasswordChange() {},
-  }));
-  expect(html).toMatch(/my site|我的站点/);
-  expect(html).toMatch(mode === "local" ? /Local room|本地房间/ : /Public invite|公网邀请/);
-  expect(html).toMatch(/type="checkbox"[^>]*checked/);
 });

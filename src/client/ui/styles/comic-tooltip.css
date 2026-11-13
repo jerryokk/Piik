@@ -1,0 +1,187 @@
+/* ---------- shared text / comic tooltip ---------- */
+
+/* Stateful hover/focus panel carrying a paper Comic above its trigger. The
+   trigger stays focusable; when it is natively disabled, the wrapper owns the
+   explanation focus instead. Tooltip delays hover until intent; exit gets a short
+   crossing grace without placing invisible targets over nearby controls. Under
+   prefers-reduced-motion the global block collapses the transition to instant
+   and the comic's own RM block pins its final frame. */
+/* Tooltip owns hover, keyboard focus and press. Help buttons toggle on tap;
+   action controls retain long-press guidance. */
+.lr-comic-content { animation: lrComicArrive .48s ease-out both; }
+/* A settled result stays readable. Its brief eye gesture expresses personality,
+   never a retry or a second successful operation. */
+svg[data-comic-motion="still"] .lr-person-eyes > ellipse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lrComicBlink 3.2s ease-in-out var(--comic-blink-delay, 0s) var(--comic-repeat, 1) both;
+}
+@keyframes lrComicArrive {
+  from { opacity: .45; transform: translateY(-2px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes lrComicBlink {
+  0%, 52%, 60%, 100% { transform: scaleY(1); }
+  56% { transform: scaleY(.18); }
+}
+[data-comic-reduced-motion] .lr-comic-content,
+[data-comic-reduced-motion] .lr-person-eyes > ellipse {
+  animation: none !important;
+  transform: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lr-comic-content, svg[data-comic-motion="still"] .lr-person-eyes > ellipse {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+.lr-comic-tip-wrap { position: relative; display: inline-flex; }
+.lr-comic-tip-wrap.is-help-only > button:not(:disabled) { cursor: default; }
+.lr-comic-tip-wrap.is-disabled-trigger > :disabled { pointer-events: none; }
+.lr-comic-tip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  overflow: visible;
+  transform: translate(var(--tooltip-offset-x, 0px), var(--tooltip-offset, 4px));
+  width: max-content;
+  max-width: min(320px, var(--tooltip-max-width, calc(100vw - 16px)));
+  z-index: 30;
+  background: var(--paper);
+  border: 2.5px solid var(--comic-tone, var(--ink));
+  border-radius: var(--radius);
+  padding: 10px;
+  box-shadow: 0 6px 18px rgb(16 26 44 / .18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s ease, transform .16s ease;
+}
+.lr-comic-tip * { animation-play-state: paused !important; }
+.lr-comic-tip.is-text {
+  padding: 10px 14px;
+  max-width: min(320px, var(--tooltip-max-width, calc(100vw - 16px)));
+  color: var(--ink);
+  font: 600 14px/1.6 var(--font);
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.lr-comic-tip.has-comic.is-text { width: 252px; }
+.lr-comic-tip-content {
+  display: block;
+  max-height: max(0px, calc(var(--tooltip-max-height, 100dvh - 16px) - 25px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.lr-comic-tip-content > svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+/* Keep the panel reachable across the small gap while reading it. */
+.lr-comic-tip::after {
+  content: "";
+  position: absolute;
+  inset: 100% 0 auto;
+  height: 10px;
+}
+.lr-comic-tip.is-below::after { inset: auto 0 100%; }
+.lr-comic-tip.is-left::after { inset: 0 auto 0 100%; width: 10px; height: auto; }
+.lr-comic-tip.is-right::after { inset: 0 100% 0 auto; width: 10px; height: auto; }
+.lr-comic-tip-wrap:is(.is-hover-open, .is-focus-open, .is-tip-open) > .lr-comic-tip {
+  pointer-events: auto;
+}
+/* The caret follows the trigger, including in a scrolled/clipped list. */
+.lr-comic-tip::before {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  left: var(--tooltip-caret);
+  width: 10px;
+  height: 10px;
+  background: var(--paper);
+  border: solid var(--comic-tone, var(--ink));
+  border-width: 0 2.5px 2.5px 0;
+  transform: translateX(-50%) rotate(45deg);
+  pointer-events: none;
+}
+.lr-comic-tip.is-below::before {
+  bottom: auto;
+  top: -7px;
+  border-width: 2.5px 0 0 2.5px;
+}
+.lr-comic-tip:is(.is-left, .is-right)::before {
+  top: var(--tooltip-caret);
+  bottom: auto;
+  transform: translateY(-50%) rotate(45deg);
+}
+.lr-comic-tip.is-left::before { left: auto; right: -7px; border-width: 2.5px 2.5px 0 0; }
+.lr-comic-tip.is-right::before { left: -7px; border-width: 0 0 2.5px 2.5px; }
+
+/* channel 1: fine-pointer hover */
+@media (hover: hover) and (pointer: fine) {
+  .lr-comic-tip-wrap.is-hover-open .lr-comic-tip { opacity: 1; transform: translate(var(--tooltip-offset-x, 0px), 0); }
+  .lr-comic-tip-wrap.is-hover-open .lr-comic-tip * { animation-play-state: running !important; }
+
+  /* Panel mutex: keyboard focus (channel 2) can hold one wrap's panel open
+     while the pointer hovers a neighboring trigger, and two 320px panels at
+     the same z-index would overlap (stacking decided by DOM order alone).
+     While a wrap in the same container carries focus-visible, suppress
+     hover-open on the others; the suppressed wrap re-arms the moment focus
+     moves, so keyboard and pointer handoff stays a clean one-panel relay.
+     Scoped to the containers that hold adjacent wrapped triggers; the guard
+     keys on the component-owned focus state, so plain mouse clicks (no panel
+     held open) never suppress anything. */
+  :is(.lr-row-group, .lr-pawn-detail, .lr-entry-actions, .lr-pawns, .lr-route, .lr-header-controls, .lr-playback):has(.lr-comic-tip-wrap.is-focus-open)
+    .lr-comic-tip-wrap:not(.is-focus-open).is-hover-open .lr-comic-tip {
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0s;
+  }
+  :is(.lr-row-group, .lr-pawn-detail, .lr-entry-actions, .lr-pawns, .lr-route, .lr-header-controls, .lr-playback):has(.lr-comic-tip-wrap.is-focus-open)
+    .lr-comic-tip-wrap:not(.is-focus-open).is-hover-open .lr-comic-tip * {
+    animation-play-state: paused !important;
+  }
+}
+
+/* Keyboard focus and click/long-press guidance. */
+.lr-comic-tip-wrap.is-focus-open .lr-comic-tip,
+.lr-comic-tip-wrap.is-tip-open .lr-comic-tip {
+  opacity: 1;
+  transform: translate(var(--tooltip-offset-x, 0px), 0);
+}
+.lr-comic-tip-wrap.is-focus-open .lr-comic-tip *,
+.lr-comic-tip-wrap.is-tip-open .lr-comic-tip * {
+  animation-play-state: running !important;
+}
+
+/* Below-placement: header controls sit at the viewport top. */
+.lr-comic-tip.is-below { --tooltip-offset: -4px; }
+.lr-comic-tip.is-left { --tooltip-offset: 0px; --tooltip-offset-x: 4px; }
+.lr-comic-tip.is-right { --tooltip-offset: 0px; --tooltip-offset-x: -4px; }
+
+/* Native popovers start at display:none, so their first visible style needs
+   an explicit entrance baseline as well as the ordinary exit transition. */
+@starting-style {
+  .lr-comic-tip-wrap:is(.is-hover-open, .is-focus-open, .is-tip-open) > .lr-comic-tip {
+    opacity: 0;
+    transform: translate(var(--tooltip-offset-x, 0px), var(--tooltip-offset, 4px));
+  }
+}
+
+/* On mobile the wrapper (not the button) is the flex item, so equal-width
+   action buttons keep their stretch when hint-wrapped. */
+@media (max-width: 640px) {
+  .lr-group-actions .lr-comic-tip-wrap { flex: 1 1 0; min-width: 0; }
+  .lr-group-actions .lr-comic-tip-wrap .lr-btn { width: 100%; }
+  .lr-comic-tip { max-width: min(320px, 78vw, var(--tooltip-max-width, calc(100vw - 16px))); }
+}
+
+.lr-comic-tip-caption {
+  display: block;
+  white-space: pre-line;
+}
+.lr-comic-tip-content > svg + .lr-comic-tip-caption { margin-top: 8px; }

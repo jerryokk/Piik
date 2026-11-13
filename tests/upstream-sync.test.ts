@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { expect, it } from "vitest";
 
+// Runs several real git replays; the default 5 s budget is only enough when
+// the machine is otherwise idle.
 it("replays a real patch stack, drops upstream equivalents and preserves conflicts and existing work", () => {
   const root = mkdtempSync(join(tmpdir(), "piik-upstream-"));
   const upstream = join(root, "upstream"), fork = join(root, "fork");
@@ -37,7 +39,7 @@ it("replays a real patch stack, drops upstream equivalents and preserves conflic
     expect(updated).not.toBe(accepted);
     writeFileSync(join(fork, "api.txt"), "uncommitted user work\n");
     const run = (out: string, onto = "main") => spawnSync(process.execPath, [
-      resolve("scripts/sync-upstream.mjs"), "--source", fork, "--upstream", upstream,
+      resolve("scripts/utils/sync-upstream.mjs"), "--source", fork, "--upstream", upstream,
       "--base", base, "--head", head, "--onto", onto, "--out", out,
     ], {
       encoding: "utf8", windowsHide: true,
@@ -82,4 +84,4 @@ it("replays a real patch stack, drops upstream equivalents and preserves conflic
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
-}, 30_000);
+}, 60_000);

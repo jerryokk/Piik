@@ -1,0 +1,15 @@
+[package]
+name = "piik-media-forwarding"
+description = "Piik sans-IO media forwarding: source tracking, RTP/VP8 munging, layer selection and allocation."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+piik-encoded.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

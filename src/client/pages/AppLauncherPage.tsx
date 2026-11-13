@@ -1,26 +1,21 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { z } from "zod";
 
-import { BrandMark } from "../components/living/BrandMark";
-import { HintComic } from "../components/living/hints";
-import { LoadingStatus } from "../components/living/WaitingStatus";
-import { AppReleaseNotice } from "../components/living/AppReleaseNotice";
-import { AppHeader } from "../components/living/Header";
-import { LauncherForm, type AppMode } from "../components/living/LauncherForm";
-import { Btn, Pill } from "../components/living/primitives";
+import { BrandMark } from "../ui/components/shell/BrandMark";
+import { HintComic } from "../ui/components/hints";
+import { LoadingStatus } from "../ui/components/people/WaitingStatus";
+import { AppHeader } from "../ui/components/shell/Header";
+import { LauncherForm, type AppMode } from "../ui/components/shell/LauncherForm";
+import { Btn, Pill } from "../ui/components/shell/primitives";
 import { hasCopyPreference, isCopyKey, useCopy } from "../ui/copy";
 import { consoleLanguage } from "../locales";
 import { Glyph } from "../ui/icons";
 import { currentThemePreference, subscribeTheme } from "../ui/theme";
 import { clientLaunchURL, type ClientLaunchPresentation } from "../lib/session";
-import type { AppReleaseIdentity } from "../lib/release-update";
-import { useReleaseUpdate } from "../lib/use-release-update";
 
 const launcherStateSchema = z.object({
   sites: z.array(z.string()),
   startupSite: z.string(),
-  ownedSites: z.array(z.string()).default([]),
-  startupMode: z.enum(["local", "link", ""]).nullish(),
   localAccessPassword: z.string(),
   defaultMode: z.enum(["local", "link"]),
   modes: z.array(z.enum(["local", "link"])).default(["local", "link"]),
@@ -51,8 +46,6 @@ export function AppLauncherPage() {
   const [modes, setModes] = useState<readonly AppMode[]>(["local", "link"]);
   const [sites, setSites] = useState<string[]>([]);
   const [startupSite, setStartupSite] = useState("");
-  const [ownedSites, setOwnedSites] = useState<string[]>([]);
-  const [startupMode, setStartupMode] = useState<AppMode | undefined>();
   const [openOnApproval, setOpenOnApproval] = useState(false);
   const [localAccessPassword, setLocalAccessPassword] = useState("");
   const [error, setError] = useState<{ kind: "load" | "launch"; reason?: string; detail?: string } | null>(null);
@@ -62,8 +55,6 @@ export function AppLauncherPage() {
   const [debugError, setDebugError] = useState(false);
   const [reload, setReload] = useState(0);
   const [lan, setLan] = useState<z.infer<typeof launcherStateSchema>["lan"]>();
-  const [build, setBuild] = useState<AppReleaseIdentity>();
-  const { update } = useReleaseUpdate(build);
   const [version, setVersion] = useState<string>();
   const [target, setTarget] = useState<string>();
   const [controlPort, setControlPort] = useState<number>();
@@ -72,7 +63,18 @@ export function AppLauncherPage() {
   const [siteEntry, setSiteEntry] = useState({ origin: "", confirming: false });
   // Background reads cannot replace a newer command's result or optimistic state.
   const stateChanges = useRef({ revision: 0, pending: 0 });
-  const externalSite = new URLSearchParams(window.location.search).get("site");
+  const query = new URLSearchParams(window.location.search);
+  const externalSite = query.get("site");
+  // Opened from a site that already holds App access. The origin is only a
+  // navigation hint, never authority, so it is validated like any other.
+  const fromSite = (() => {
+    const value = query.get("from");
+    if (!value) return null;
+    try {
+      const url = new URL(value);
+      return ["http:", "https:"].includes(url.protocol) && url.origin === value ? value : null;
+    } catch { return null; }
+  })();
   const manualSite = externalSite === null && siteEntry.confirming;
   const requestedSite = externalSite ?? (manualSite ? siteEntry.origin : null);
   const validSite = requestedSite && (() => {
@@ -82,7 +84,7 @@ export function AppLauncherPage() {
     } catch { return false; }
   })();
   const approvalCurrent = validSite && sites.includes(requestedSite);
-  const openSiteOnStart = Boolean(approvalCurrent && (startupSite === requestedSite || startupMode && ownedSites.includes(requestedSite)));
+  const openSiteOnStart = Boolean(approvalCurrent && startupSite === requestedSite);
 
   useEffect(() => {
     // The App's saved exact origin owns permission, including repeat connections.
@@ -96,7 +98,6 @@ export function AppLauncherPage() {
     let current = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let restoredSettings = false;
-    let enterOnReady = new URLSearchParams(window.location.search).get("start") === "1";
     let reading = false;
     const readState = () => {
       if (reading || !current) return;
@@ -116,11 +117,12 @@ export function AppLauncherPage() {
       .then((state) => {
         if (!fresh()) return;
         if (!restoredSettings) {
-          setMode(state.defaultMode);
+          // A saved mode this App no longer offers must not be restored, or the
+          // form would select a choice the Host cannot launch.
+          setMode(state.modes.includes(state.defaultMode) ? state.defaultMode : state.modes[0] ?? state.defaultMode);
           setModes(state.modes);
           setLocalAccessPassword(state.localAccessPassword);
           setLan(state.lan);
-          if (state.startupMode && state.modes.includes(state.startupMode)) setMode(state.startupMode);
           restoredSettings = true;
         }
         setVersion(state.version === "development" && /^[a-f0-9]{40}$/i.test(state.revision)
@@ -130,19 +132,14 @@ export function AppLauncherPage() {
         setStarting(state.starting === true);
         setSites(state.sites);
         setStartupSite(state.startupSite);
-        setStartupMode(state.startupMode || undefined);
-        setOwnedSites(state.ownedSites);
         setAppDebug(state.debug);
         setDebug(state.debug === true);
+        // A ready room clears the previous launch failure; only a load failure
+        // (settings unreadable) stays until it is fixed.
         setError(previous => state.detail ? { kind: "launch", reason: state.reason, detail: state.detail }
           : state.target || previous?.kind === "load" ? null : previous);
         setLoading(false);
-        if (enterOnReady && (state.target || state.detail)) {
-          enterOnReady = false;
-          if (state.target) window.location.replace(launchURL(state.target, { debug: state.debug === true, controlPort: state.controlPort }));
-        }
         if (state.starting) timer = setTimeout(() => void readState(), 750);
-        setBuild({ version: state.version, revision: state.revision, packageTarget: state.packageTarget });
       })
       .catch(() => {
         if (!fresh()) return;
@@ -186,7 +183,7 @@ export function AppLauncherPage() {
     finally { finish(); setDebugBusy(false); }
   }
 
-  function launchURL(target: string, settings = { debug: debug, controlPort }): string {
+  function launchURL(target: string): string {
     const theme = currentThemePreference();
     const presentation: ClientLaunchPresentation = {
       lang, vis, theme,
@@ -195,7 +192,7 @@ export function AppLauncherPage() {
         ...(theme !== null ? ["theme" as const] : []),
       ],
     };
-    return clientLaunchURL(target, presentation, settings.debug, settings.controlPort);
+    return clientLaunchURL(target, presentation, debug, controlPort);
   }
 
   async function launch(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -241,6 +238,8 @@ export function AppLauncherPage() {
     const finish = beginStateChange();
     setSiteBusy(true);
     setSiteError(undefined);
+    // A stalled save must not leave approval spinning; abort keeps the access
+    // already granted and lets the person retry.
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8_000);
     async function save(setting: "site" | "startup-site"): Promise<boolean> {
@@ -249,12 +248,10 @@ export function AppLauncherPage() {
         body: JSON.stringify({ site: nextSite, ...(setting === "site" ? { allowed } : {}) }),
         signal: controller.signal,
       });
-      const result = launcherStateSchema.pick({ sites: true, startupSite: true, startupMode: true, ownedSites: true }).safeParse(await response.json().catch(() => null));
+      const result = launcherStateSchema.pick({ sites: true, startupSite: true }).safeParse(await response.json().catch(() => null));
       if (result.success) {
         setSites(result.data.sites);
         setStartupSite(result.data.startupSite);
-        setStartupMode(result.data.startupMode || undefined);
-        setOwnedSites(result.data.ownedSites);
       }
       if (response.status === 409 && result.success) {
         setSiteError(t("client.connect.changed"));
@@ -281,7 +278,7 @@ export function AppLauncherPage() {
   return (
     <div className="lr-app">
       <AppHeader homeHref="/client" diagnosticControl={appDebug === undefined ? null : (
-        <Btn icon="cpu" title="client.launch.debugHint" cap="debug.start" size="compact" quiet
+        <Btn icon="cpu" title="client.launch.debugHint" size="compact"
           pressed={debug} tone={debug ? "on" : undefined} hint="debug-start"
           disabled={appDebug || debugBusy || loading || starting || !!target || error?.kind === "load"}
           onClick={() => void enableDebug()} />
@@ -370,26 +367,22 @@ export function AppLauncherPage() {
               setSiteError(undefined);
             }}
             startupSite={startupSite}
-            ownedStartup={startupMode}
-            ownedSites={ownedSites}
-            onToggleStartupSite={site => void changeSite(startupSite === site || startupMode && ownedSites.includes(site) ? "" : site, "startup-site")}
+            onToggleStartupSite={site => void changeSite(startupSite === site ? "" : site, "startup-site")}
             localAccessPassword={localAccessPassword}
             onModeChange={setMode}
             onRemoveSite={site => void changeSite(site, "site", false, false)}
             siteBusy={siteBusy}
             siteError={siteError}
             target={target}
+            fromSite={fromSite}
             entryURL={launchURL}
             onLocalAccessPasswordChange={setLocalAccessPassword}
             lan={lan && { ...lan, onChange: (selected) => setLan({ ...lan, selected }) }}
             onSubmit={launch}
-          >
-            {update && <AppReleaseNotice update={update} />}
-          </LauncherForm>
+          />
         )}
       </main>
       <footer className="lr-client-footer">
-        <a className="lr-btn is-dense is-quiet" href="https://github.com/TNTcraftHIM/Piik" target="_blank" rel="noopener noreferrer">GitHub<span aria-hidden="true"> ↗</span></a>
         {version && <p className="lr-client-version">
           <span className={vis ? "visually-hidden" : undefined}>{t("client.launch.version", { version })}</span>
           {vis && <span aria-hidden="true">{version}</span>}

@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { CHAT_HISTORY_LIMIT, CHAT_OVERLAY_DURATION_MS, RoomInteractionSession, type RoomInteraction } from "../src/client/lib/room-interactions";
+import { CHAT_HISTORY_LIMIT, CHAT_OVERLAY_DURATION_MS, RoomInteractionSession, type RoomInteraction } from "../src/client/lib/room/interactions";
 import { REACTION_IDS, normalizeChatText } from "../src/shared/room-interactions";
-import { formatChatTranscript } from "../src/client/lib/room-chat-export";
+import { formatChatTranscript } from "../src/client/lib/room/chat-export";
 
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 function setup() {
@@ -9,29 +9,21 @@ function setup() {
   const send = vi.fn(() => true);
   const session = new RoomInteractionSession(send);
   session.authenticated("self_peer_1234");
-  expect(send).toHaveBeenLastCalledWith({ type: "subscribe-room-interactions" });
   return { session, send };
 }
 const message = (id: string): RoomInteraction => ({ type: "room-interaction", id, requestId: "request_1234", occurredAt: Date.now(),
   sender: { peerId: "other_peer_1234", role: "viewer", displayName: "朋友" }, payload: { kind: "chat", text: "Hello" } });
 
-test.each([
-  { advertised: undefined, expected: ["laugh", "eyes", "wow", "wave", "heart", "clap", "party", "fire", "star", "sleep", "tomato", "poop"] },
-  { advertised: ["heart", "thumbsup", "future-effect"], expected: ["thumbsup", "heart"] },
-  { advertised: [], expected: [] },
-])("sends only known Server-supported reactions: $advertised", ({ advertised, expected }) => {
+test("offers the registered reaction set and rejects anything outside it", () => {
   const send = vi.fn(() => true);
-  const session = new RoomInteractionSession(send, Date.now, advertised);
+  const session = new RoomInteractionSession(send, Date.now);
   session.authenticated("self_peer_1234");
   session.receive({ type: "room-interactions-ready", serverTime: Date.now() });
-  expect(session.getSnapshot().reactionIds).toEqual(expected);
-  for (const reaction of REACTION_IDS.filter(id => !expected.includes(id))) {
-    expect(session.send({ kind: "reaction", reaction, targetPeerId: "other_peer_1234" })).toBe(false);
-  }
-  expect(send).toHaveBeenCalledTimes(1); // Unsupported commands never reach signaling.
-  expect(session.send(advertised?.includes("thumbsup")
-    ? { kind: "reaction", reaction: "thumbsup" }
-    : { kind: "chat", text: "Still here" })).toBe(true);
+  expect(session.getSnapshot().reactionIds).toEqual(REACTION_IDS);
+  expect(session.send({ kind: "reaction", reaction: "tomato" })).toBe(false);
+  expect(session.send({ kind: "reaction", reaction: "future-effect" } as never)).toBe(false);
+  expect(send).not.toHaveBeenCalled();
+  expect(session.send({ kind: "reaction", reaction: "thumbsup" })).toBe(true);
   session.close();
 });
 
@@ -122,7 +114,7 @@ test("data needs explicit readiness, waits for server echo, and has no offline r
   expect(session.getSnapshot()).toMatchObject({ ready: false, pending: null, error: "unconfirmed", reactions: [] });
   const count = send.mock.calls.length;
   session.authenticated("self_peer_1234");
-  expect(send.mock.calls.slice(count)).toEqual([[{ type: "subscribe-room-interactions" }]]);
+  expect(send.mock.calls.length).toBe(count);
   expect(session.getSnapshot().messages).toHaveLength(1);
   expect(session.getSnapshot().error).toBe("unconfirmed");
   session.receive({ type: "room-interactions-ready", serverTime: Date.now() });
@@ -227,7 +219,7 @@ test("same-room re-admission retains bounded history and its original self attri
   expect(session.key).toBe(key);
   expect(session.getSnapshot().messages.map(item => item.isSelf)).toEqual([true, false]);
   expect(session.getSnapshot()).toMatchObject({ confirmed: null, pending: null, ready: false });
-  expect(send.mock.calls.slice(sendCount)).toEqual([[{ type: "subscribe-room-interactions" }]]);
+  expect(send.mock.calls.length).toBe(sendCount);
   session.close();
   const replacement = new RoomInteractionSession(send);
   expect(replacement.key).not.toBe(key);

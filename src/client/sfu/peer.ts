@@ -1,4 +1,4 @@
-import { observeDebugConnection } from "../lib/debug-webrtc";
+import { observeDebugConnection } from "../lib/debug/webrtc";
 import { addRemoteIceCandidate } from "../webrtc/nat-prediction";
 import { waitForConnectionOperation } from "../webrtc/connection-operation";
 import { normalizeVideoOfferSdp } from "../webrtc/video-codec";

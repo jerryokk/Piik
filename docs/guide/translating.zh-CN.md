@@ -2,9 +2,9 @@
 
 [English](./translating.md) · [贡献指南](../../CONTRIBUTING.md)
 
-Piik 提供简体中文和英文，可通过 GitHub Issue 与 Pull Request（PR）建议措辞、修正译文或新增语言。
+Piik 提供简体中文和英文，可通过建议或补丁（PR）提出措辞、修正译文或新增语言。
 
-只想改一句话，可以直接[提交建议](https://github.com/TNTcraftHIM/Piik/issues/new/choose)：
+只想改一句话，可以直接向提供 Piik 的人提交建议：
 写明语言、页面或控件、原文、建议译文及理由。附上截图或进入该页面的步骤，便于理解上下文；
 截图中请移除私人邀请链接、密码和个人内容。提交措辞建议无需搭建开发环境。
 
@@ -12,8 +12,7 @@ Piik 提供简体中文和英文，可通过 GitHub Issue 与 Pull Request（PR�
 
 1. 先试用对应界面，看看附近有哪些操作。必要时对照中英文理解含义；
    角色名称、术语与文风以[命名和文案规范](../standards/naming.md#voice-and-terminology)为准。
-2. Fork 仓库，从当前 `main` 创建工作分支，按[贡献流程](../../CONTRIBUTING.md#lean-workflow)修改。
-   少量文字也可以通过 GitHub 文件编辑器提出修改。
+2. 从当前 `main` 创建工作分支，按[贡献流程](../../CONTRIBUTING.md#lean-workflow)修改。
 3. 在下表对应的文件里查找原文。语言文件中只修改冒号后的译文，保留键名和占位符。
    找到键名后，可以搜索它在哪些界面使用，例如：
 
@@ -31,17 +30,12 @@ Piik 提供简体中文和英文，可通过 GitHub Issue 与 Pull Request（PR�
 | 内容 | 修改位置 |
 | --- | --- |
 | App 启动页、网页端与 App 共用的操作界面，含 tooltip 和无障碍标签 | [英文词库](../../src/client/locales/en.ts)、[中文词库](../../src/client/locales/zh.ts) |
-| 欢迎语、等待短句、浏览器标签页的轮换标题 | 同一语言文件中的 `zhPlayful` / `enPlayful` 及标题词库；官网欢迎语共用这些词库 |
-| 官网 | [页面正文](../../site/index.html)和[交互文案](../../site/main.js)，按 `en`、`zh-CN` 成对组织 |
-| 宣传短片 | [短片源码说明](../../site/film/README.md)，字幕、插画和播放控件有各自的中英文内容 |
-| App 终端 | [console.go](../../internal/app/console.go) 中的 `consoleCopy`，每项按英文、中文、纯视觉排列；第三项即使为空也需保留 |
+| 欢迎语、等待短句、浏览器标签页的轮换标题 | 同一语言文件中的 `zhPlayful` / `enPlayful` 及标题词库 |
 | README 与读者文档 | [README](../../README.md)、[文档首页](./README.md)、[使用指南](./getting-started.md)、[问题排查](./troubleshooting.md)、[部署指南](../operations/self-hosting.md)，均有对应的 `.zh-CN.md` 文件 |
 
 修改源码后，重新构建提供该内容的页面或程序：
 
 - **App/Server 界面：** 词库随网页资源打包，需发布更新后的 App 或 Server；远程站点的界面由该 Server 提供。
-- **官网与短片：** 使用[官网工作流](../operations/website.md)。
-- **指南：** 文档网站在下次发布时从仓库 Markdown 生成，导航与搜索文案位于 `site/docs/`。
 
 操作名称变化时，同步相关教程。技术参考保留一份公共版本，详见[文档职责](../standards/documentation.md)。
 
@@ -51,7 +45,7 @@ Piik 提供简体中文和英文，可通过 GitHub Issue 与 Pull Request（PR�
 性能、平台、连接条件等限制应保留原意。梗和彩蛋应让不懂出处的人也能理解。
 机器辅助翻译需要由理解目标语言和使用场景的人校对；原文本身有歧义时，在 PR 中说明。
 
-App 启动错误需同时翻译网页与终端的说明，保留共用的原因代码和原始技术详情。
+App 启动错误需翻译启动页的说明，保留共用的原因代码和原始技术详情。
 
 语言文件使用 TypeScript 对象。下面是现有的一组内容：
 
@@ -66,13 +60,13 @@ App 启动错误需同时翻译网页与终端的说明，保留共用的原因�
 格式化函数对每个变量替换一次，使用普通字符串。需要复数、HTML 或其他句子组合时，
 在 PR 中给出具体需求，连同调用处与格式化函数一起调整。
 
-保留代码的引号、转义和逗号。命令、配置项、URL、下载文件名，以及 Go 终端文案中的 `%s`
+保留代码的引号、转义和逗号。命令、配置项、URL、下载文件名，以及 `%s`
 等格式标记保持原样。链接显示文字和图片说明可以翻译；Markdown 标题变化后，要修正对应的页内链接。
 许可证原文及第三方声明保持完整。
 
 ## 新增一种语言
 
-先搜索是否已有相关 Issue 或 PR。准备翻译较多内容时，可以开一个 Issue，说明语言代码、
+先向维护者确认该语言是否已有人在翻译。准备翻译较多内容时，先说明语言代码、
 翻译范围，以及术语或排版疑问，方便大家分工和校对。
 
 1. 复制 `src/client/locales/en.ts`，例如命名为 `fr.ts`。翻译正文与标题标签，按语境编写
@@ -92,10 +86,9 @@ App 启动错误需同时翻译网页与终端的说明，保留共用的原因�
    `tag` 使用对应语言标签；同时提供地区或文字变体时，简称应能区分。
    额外语言显示在纯视觉模式后的共用下拉菜单中。
    按[系统语言规则](../standards/presentation-lifecycle.md#visual-language)检查初始选择、偏好保存与 App 跳转。
-3. 检查完整界面与启动流程。新增的界面语言在 App 终端中暂用英文；
-   翻译终端时，还需同步启动服务和 loopback 对语言的校验，相关位置见
-   [App 模块地图](../standards/engineering.md#module-map)。
-4. 在 PR 中写清覆盖范围。官网、短片和文档可以分别翻译，新增语言时需同步各自的语言切换入口。
+3. 检查完整界面与启动流程。新增语言时，还需同步启动服务和 loopback 对语言的校验，相关位置见
+   [App 模块地图](../architecture/modules.md#crate-map)。
+4. 在 PR 中写清覆盖范围。界面和文档可以分别翻译，新增语言时需同步各自的语言切换入口。
    从右向左书写的语言还需实现并检查文字方向与布局。
 
 纯视觉模式的文字标签与说明在普通词库中翻译，保留这个呈现选项即可。
@@ -119,7 +112,7 @@ App 启动错误需同时翻译网页与终端的说明，保留共用的原因�
 
 轮换时间遵循[俏皮话生命周期](../standards/visual-language.md#playful-copy-lifecycle)。
 欢迎语及其暗号在 `/__tooltip-preview` 预览；等待短句与标题在 `/__status-preview` 预览。
-检查窄窗口和切换语言的效果。官网构建会自动使用更新后的欢迎语，其他官网文案单独维护。
+检查窄窗口和切换语言的效果。
 
 ## 预览与检查
 
@@ -140,8 +133,7 @@ npm test -- tests/copy.test.ts
 新增语言还应检查刷新、App 启动、切回英文及纯视觉模式。
 按完整语义断句，避免用空格或强制换行去适配单一桌面尺寸。
 
-官网与短片使用[官网预览流程](../operations/website.md#preview)。
-Markdown 修改在暂存新文件后执行 `node scripts/check-docs.mjs`，并检查 GitHub 渲染结果与翻译后的链接。
+Markdown 修改在暂存新文件后执行 `node scripts/checks/check-docs.mjs`，并检查 Markdown 渲染结果与翻译后的链接。
 涉及代码时，额外检查按[贡献指南](../../CONTRIBUTING.md#verification-entrypoints)执行。
 
 ## 延伸阅读

@@ -20,35 +20,6 @@ afterEach(() => {
 });
 
 describe("opt-in Browser diagnostics", () => {
-  it("records native video frame counters while retaining track facts when statistics are unavailable", async () => {
-    browser();
-    const debug = await import("../src/client/lib/debug");
-    const { debugTrack } = await import("../src/client/lib/debug-webrtc");
-    const nativeStats = Object.create({
-      get deliveredFrames() { return 40; },
-      get discardedFrames() { return 2; },
-      get totalFrames() { return 42; },
-    });
-    for (const [id, stats] of [["source", nativeStats], ["unsupported", undefined], ["unavailable", null]] as const) {
-      const track = { id, kind: "video", readyState: "live", enabled: true, muted: false, contentHint: "motion",
-        getSettings: () => ({ width: 1920, height: 1080, frameRate: 30 }), getConstraints: () => ({}) };
-      if (stats !== undefined) Object.defineProperty(track, "stats", { get: () => stats });
-      debugTrack(track as unknown as MediaStreamTrack, { senderTrackId: "generated-track" });
-    }
-    const exported = await debug.exportBrowserDebug();
-    const tracks = JSON.parse(exported).events.map((event: { details: object }) => event.details);
-    expect(tracks).toEqual([
-      expect.objectContaining({ trackId: "source", senderTrackId: "generated-track",
-        videoFrameStats: { deliveredFrames: 40, discardedFrames: 2, totalFrames: 42 } }),
-      expect.objectContaining({ trackId: "unsupported", senderTrackId: "generated-track", enabled: true,
-        settings: { width: 1920, height: 1080, frameRate: 30 } }),
-      expect.objectContaining({ trackId: "unavailable", senderTrackId: "generated-track", enabled: true,
-        settings: { width: 1920, height: 1080, frameRate: 30 } }),
-    ]);
-    expect(tracks[1]).not.toHaveProperty("videoFrameStats");
-    expect(tracks[2]).not.toHaveProperty("videoFrameStats");
-  });
-
   it("exports validated Native capture failure codes through the existing event recorder", async () => {
     browser();
     const debug = await import("../src/client/lib/debug");
@@ -76,7 +47,11 @@ describe("opt-in Browser diagnostics", () => {
       sent: Record<string, unknown>[] = [];
       send(data: string) { this.sent.push(JSON.parse(data)); }
       close() { this.readyState = "closed"; }
-      receive(data: object) { this.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(data) })); }
+      receive(data: object) {
+        this.dispatchEvent(new MessageEvent("message", { data: JSON.stringify({
+          platform: "windows", coPlay: false, capabilities: ["coPlay", "inputFeedback", "text"], ...data,
+        }) }));
+      }
     }
     const channel = new Channel();
     const session = new RemoteInputSession(channel as unknown as RTCDataChannel, () => {});
@@ -109,7 +84,7 @@ describe("opt-in Browser diagnostics", () => {
   it("collects current preview receive and playback evidence only at export, until owner retirement", async () => {
     browser();
     const debug = await import("../src/client/lib/debug");
-    const rtc = await import("../src/client/lib/debug-webrtc");
+    const rtc = await import("../src/client/lib/debug/webrtc");
     let decoded = 0;
     const connection = Object.assign(new EventTarget(), {
       connectionState: "connected", getSenders: () => [], getReceivers: () => [],
@@ -265,7 +240,7 @@ describe("opt-in Browser diagnostics", () => {
     const page = browser();
     vi.useFakeTimers();
     const debug = await import("../src/client/lib/debug");
-    const rtc = await import("../src/client/lib/debug-webrtc");
+    const rtc = await import("../src/client/lib/debug/webrtc");
     debug.installBrowserDebug();
     const transport = Object.assign(new EventTarget(), { state: "connecting" });
     const connection = Object.assign(new EventTarget(), {
@@ -296,7 +271,7 @@ describe("opt-in Browser diagnostics", () => {
   it("keeps selected ICE evidence when many interface pairs exceed the raw report limit", async () => {
     browser();
     const debug = await import("../src/client/lib/debug");
-    const rtc = await import("../src/client/lib/debug-webrtc");
+    const rtc = await import("../src/client/lib/debug/webrtc");
     const connection = Object.assign(new EventTarget(), { getSenders: () => [], getReceivers: () => [] });
     const peer = connection as unknown as RTCPeerConnection;
     rtc.observeDebugConnection(peer, { connectionId: "many-interfaces", role: "receive" });
@@ -343,7 +318,11 @@ describe("opt-in Browser diagnostics", () => {
     vi.stubGlobal("WebSocket", Socket);
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
       protocol: 10, service: "piik-client", port: 39721, instanceToken: token,
-      nativeMedia: { video: true, processAudio: false, systemAudio: true, hardwareH264: true, softwareVP8: true },
+      nativeMedia: {
+        video: true, processAudio: false, systemAudio: true, hardwareH264: true, softwareVP8: true,
+        receiverReuse: false, remoteCoPlay: false, shareVolume: false,
+        sourceCancellation: false, captureFailureDetails: false, captureBorderControl: false,
+      },
     }), { status: 200 })));
     const debug = await import("../src/client/lib/debug");
     debug.installBrowserDebug();

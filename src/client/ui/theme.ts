@@ -1,9 +1,9 @@
 // Light/dark theme with system default, persistence, and no-flash startup.
 // index.html applies the stored/system theme before first paint. Until the user
 // chooses explicitly, this module continues following system changes.
-export type Theme = "light" | "dark";
+type Theme = "light" | "dark";
 
-export const THEME_STORAGE_KEY = "piik:ui-theme";
+const THEME_STORAGE_KEY = "piik:ui-theme";
 const DARK_THEME_QUERY = "(prefers-color-scheme: dark)";
 
 function detectTheme(): Theme {

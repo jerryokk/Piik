@@ -1,0 +1,123 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "3.0.0-alpha.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+# Internal crates.
+piik-ordered = { path = "crates/piik-ordered" }
+piik-protocol = { path = "crates/piik-protocol" }
+piik-route = { path = "crates/piik-route" }
+piik-config = { path = "crates/piik-config" }
+piik-app-config = { path = "crates/piik-app-config" }
+
+# Shared third-party versions. Cargo.lock pins the resolved graph.
+anyhow = "1.0.104"
+thiserror = "2.0.21"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+regex = "1.12.2"
+unicode-normalization = "0.1.26"
+url = "2.5.7"
+tokio = { version = "1.54.1", features = ["full"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
+rand = "0.10.3"
+sha2 = "0.11.1"
+hmac = "0.13.0"
+subtle = "2.6.1"
+hex = "0.4.3"
+base64 = "0.23.1"
+stun_codec = "0.4.0"
+bytecodec = "0.5.0"
+zip = { version = "9.3.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+tempfile = "3.27.0"
+memory-stats = "1.2.0"
+humantime = "2.4.0"
+piik-room = { path = "crates/piik-room" }
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+scrypt = { version = "0.12.0", default-features = false }
+piik-encoded = { path = "crates/piik-encoded" }
+piik-diagnostics = { path = "crates/piik-diagnostics" }
+opus-pure = "0.2.2"
+# WebRTC media (sans-IO). aws-lc-rs matches rustls' default provider and builds
+# on Windows MSVC without cmake/nasm (aws-lc-sys ships prebuilt NASM objects).
+str0m = { version = "=0.25.0", default-features = false, features = ["aws-lc-rs"] }
+str0m-netem = "=0.5.0"
+piik-media-testkit = { path = "crates/piik-media-testkit" }
+tokio-util = { version = "0.7.20", features = ["io-util"] }
+piik-sfu = { path = "crates/piik-sfu" }
+piik-input-route = { path = "crates/piik-input-route" }
+piik-media-edge = { path = "crates/piik-media-edge" }
+piik-failure = { path = "crates/piik-failure" }
+piik-tls = { path = "crates/piik-tls" }
+piik-lan = { path = "crates/piik-lan" }
+piik-portmapping = { path = "crates/piik-portmapping" }
+piik-public-tunnel = { path = "crates/piik-public-tunnel" }
+# TLS: rustls with the aws-lc-rs provider already used by str0m; rcgen signs
+# process-local certificates and x509-parser reads PEM validity windows.
+rustls = "0.23.46"
+tokio-rustls = "0.26.6"
+rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem"] }
+x509-parser = "0.18.1"
+time = "0.3.55"
+# Windows networking: interface enumeration, NAT-PMP/PCP and UPnP IGD clients.
+if-addrs = "0.15.0"
+crab_nat = "0.8.1"
+igd-next = { version = "0.18.0", default-features = false, features = ["aio_tokio"] }
+windows = "0.62.2"
+# Signaling WebSocket transport.
+piik-signal = { path = "crates/piik-signal" }
+axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio", "ws"] }
+futures-util = { version = "0.3.34", default-features = false, features = ["sink", "std"] }
+tokio-tungstenite = "0.29.0"
+# Media transport: str0m wrapper, UDP sockets and socket options.
+piik-media-transport = { path = "crates/piik-media-transport" }
+socket2 = "0.6.5"
+# Remote input: AES-256-GCM per-endpoint packets on the provider rustls already uses.
+piik-remote-input = { path = "crates/piik-remote-input" }
+aws-lc-rs = { version = "1.19.0", default-features = false, features = ["aws-lc-sys", "prebuilt-nasm"] }
+# Sans-IO forwarding: source tracking, RTP/VP8 munging and allocation.
+piik-media-forwarding = { path = "crates/piik-media-forwarding" }
+piik-stun = { path = "crates/piik-stun" }
+piik-native-capture = { path = "crates/piik-native-capture" }
+piik-native-audio = { path = "crates/piik-native-audio" }
+# Windows App shell: Tauri v2 on WebView2 and its command line.
+tauri = "=2.12.5"
+tauri-build = "=2.7.4"
+tauri-plugin-single-instance = "=2.5.5"
+tauri-plugin-opener = "=2.7.2"
+clap = { version = "4.6.7", features = ["derive"] }
+# App loopback servers: native control (v10) and the launcher page.
+piik-loopback = { path = "crates/piik-loopback" }
+piik-launcher = { path = "crates/piik-launcher" }
+hyper = { version = "1.12.0", features = ["server", "http1"] }
+hyper-util = { version = "0.1.21", features = ["tokio", "service"] }
+flate2 = "1.1.10"
+percent-encoding = "2.3.2"
+reqwest = { version = "0.13.5", default-features = false, features = ["json"] }
+# Media sessions: forwarding core bound to str0m RTP-mode connections.
+piik-media-session = { path = "crates/piik-media-session" }
+# Shared server HTTP app: gzip for text assets over tower services.
+piik-service = { path = "crates/piik-service" }
+tower = { version = "0.5.3", default-features = false, features = ["util"] }
+tower-http = { version = "0.7.1", default-features = false, features = ["compression-gzip"] }
+# App runtime wiring: native control sessions behind loopback v10.
+piik-native-control = { path = "crates/piik-native-control" }
+# Native Host and Viewer media behind native control.
+piik-native-host = { path = "crates/piik-native-host" }
+piik-native-viewer = { path = "crates/piik-native-viewer" }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

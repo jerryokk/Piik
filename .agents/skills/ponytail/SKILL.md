@@ -42,7 +42,7 @@ count. A larger correction is justified when it removes competing writers or
 finishes the affected flow. Keep readable code and clear boundaries rather than
 compressing logic into a one-liner or one oversized file.
 
-Apply the shared [implementation rules](../../../docs/standards/engineering.md#implementation-rules)
+Apply the shared [implementation rules](../../../docs/architecture/modules.md#implementation-rules)
 for helper boundaries, typed validation, comments and generated sources rather
 than maintaining separate coding rules in this skill. Preserve useful provenance
 and required license notices when removing replaced paths.

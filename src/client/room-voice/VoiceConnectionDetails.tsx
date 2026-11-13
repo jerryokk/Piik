@@ -1,5 +1,5 @@
-import type { ConnectionDetail } from "../components/living/ConnectionDetails";
-import { Pill } from "../components/living/primitives";
+import type { ConnectionDetail } from "../ui/components/people/ConnectionDetails";
+import { Pill } from "../ui/components/shell/primitives";
 import type { CopyKey } from "../ui/copy";
 import { STATUS_CATALOG, type StatusDescriptor } from "../ui/media-status";
 import type { RoomVoiceSnapshot } from "./session";

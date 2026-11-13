@@ -9,9 +9,10 @@ export type RemoteInputEvent =
   | { type: "text"; text: string }
   | { type: "button"; button: number; down: boolean }
   | { type: "wheel"; delta: number }
-  | { type: "gamepad"; gamepad: RemoteGamepadReport }
+  | { type: "gamepad"; pad: number; gamepad: RemoteGamepadReport }
   | { type: "gamepad-reset" }
-  | { type: "gamepad-stop" }
+  | { type: "gamepad-stop"; pad?: number }
+  | { type: "gamepad-retry" }
   | { type: "reset" };
 
 type PointerInput = Extract<RemoteInputEvent, { type: "move" | "relative" }>;
@@ -22,8 +23,6 @@ export class RemoteInputSession {
   state: RemoteInputState | null = null;
   private intent: string | null = null;
   private disposed = false;
-  private capabilitiesRequested = false;
-  private inputFeedbackRequested = false;
   private pointer: PointerInput | null = null;
   private pointerTimer: ReturnType<typeof setTimeout> | null = null;
   private nextPointerAt = 0;
@@ -36,7 +35,7 @@ export class RemoteInputSession {
   }
 
   private set(state: RemoteInputState | null): void {
-    // Capability updates do not retire input belonging to the same active grant.
+    // Source facts that change within the same grant keep the active input.
     if (state?.state !== "active" || this.state?.state !== "active" ||
         state.grant !== this.state.grant || state.intent !== this.state.intent) {
       this.clearPointer();
@@ -69,16 +68,6 @@ export class RemoteInputSession {
     const parsed = remoteInputStateSchema.safeParse(decoded);
     if (!parsed.success) return;
     const state = parsed.data;
-    // Wait for a real Host response: the first sync may precede installation
-    // of our route key. Legacy Apps ignore this optional negotiation command.
-    if (!this.capabilitiesRequested) {
-      this.capabilitiesRequested = true;
-      if (!state.capabilities && !this.send({ type: "capabilities" })) return;
-    }
-    if (!this.inputFeedbackRequested && state.capabilities?.includes("inputFeedback")) {
-      this.inputFeedbackRequested = true;
-      if (!this.send({ type: "capabilities", inputFeedback: true })) return;
-    }
     // Source availability is authoritative for every request. Pause/off may
     // reach us before the Host receives our new intent; it still ends it.
     if (state.state === "unavailable") this.intent = null;
@@ -131,7 +120,8 @@ export class RemoteInputSession {
   }
 
   input(event: RemoteInputEvent): void {
-    if ((event.type === "gamepad" || event.type === "gamepad-reset" || event.type === "gamepad-stop") && (!this.state || !remoteGamepadAvailable(this.state))) return;
+    if ((event.type === "gamepad" || event.type === "gamepad-reset" || event.type === "gamepad-stop" || event.type === "gamepad-retry")
+      && (!this.state || !remoteGamepadAvailable(this.state))) return;
     if (this.state && event.type === "text" && !remoteTextAvailable(this.state)) return;
     if (event.type === "move" || event.type === "relative") {
       if (this.state?.state !== "active") return;

@@ -24,7 +24,7 @@ export interface RouteOperationToken {
 }
 
 export type RouteUpdateResult = "accepted" | "duplicate" | "stale";
-export type PeerSignalOwner = "pending" | "active";
+type PeerSignalOwner = "pending" | "active";
 
 export function exactPeerSignalOwner(
   connectionId: string,

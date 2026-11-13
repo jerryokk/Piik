@@ -16,7 +16,7 @@ const PREFLIGHT_POLL_MS = 100;
 const PREFLIGHT_WARMUP_MS = 500;
 const PREFLIGHT_MEASUREMENT_MS = 1_000;
 
-export interface H264ProbeTarget {
+interface H264ProbeTarget {
   width: number;
   height: number;
   frameRate: number;

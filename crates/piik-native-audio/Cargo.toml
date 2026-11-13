@@ -1,0 +1,15 @@
+[package]
+name = "piik-native-audio"
+description = "Opus encoding of the native capture helper's fixed 48 kHz stereo PCM frames."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+opus-pure.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

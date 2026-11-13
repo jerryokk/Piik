@@ -551,6 +551,32 @@ void CheckAutoCadenceProbe(ID3D11Device* device) {
   assert(expired);
 }
 
+void CheckOutputTypeChange() {
+  Runtime runtime;
+  const auto current = CreateOutputType();
+  for (int change = 0; change < 4; ++change) {
+    ComPtr<IMFMediaType> next;
+    Check(MFCreateMediaType(&next), "fixture-output-type");
+    Check(current->CopyAllItems(next.Get()), "fixture-copy-type");
+    // Completing codec headers is valid; changing the live shape is not.
+    const BYTE sequence[] = {0, 0, 0, 1, 0x67, 0x42, 0xc0, 0x34};
+    Check(next->SetBlob(MF_MT_MPEG_SEQUENCE_HEADER, sequence, sizeof(sequence)),
+          "fixture-sequence-header");
+    Check(MFSetAttributeRatio(next.Get(), MF_MT_FRAME_RATE,
+          kDefaultVideoProfile.frame_rate * 1000, 1000), "fixture-equivalent-rate");
+    if (change == 1) Check(next->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12), "fixture-subtype");
+    if (change == 2) Check(MFSetAttributeSize(next.Get(), MF_MT_FRAME_SIZE, 640, 480), "fixture-size");
+    if (change == 3) Check(MFSetAttributeRatio(next.Get(), MF_MT_FRAME_RATE, 15, 1), "fixture-rate");
+    bool rejected = false;
+    try { ValidateOutputChange(current.Get(), next.Get()); }
+    catch (const GateFailure& error) {
+      assert(error.stage() == "mft-output-format-change");
+      rejected = true;
+    }
+    assert(rejected == (change != 0));
+  }
+}
+
 void CheckOutputSampleAlignment() {
   Runtime runtime;
   for (DWORD alignment : {0u, 1u, 16u, 64u, 512u}) {
@@ -795,6 +821,7 @@ int main() {
   CheckPrimaryFailureDetails();
   CheckAudioCapabilityIsolation();
   CheckOutputSampleAlignment();
+  CheckOutputTypeChange();
   ComPtr<ID3D11Device> device;
   Check(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, 0, nullptr, 0,
                          D3D11_SDK_VERSION, &device, nullptr, nullptr), "fixture-warp");

@@ -1,0 +1,49 @@
+[package]
+name = "piik-remote-input"
+description = "Source-scoped attended remote input: grants, encrypted input packets and Windows injection."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+aws-lc-rs.workspace = true
+base64.workspace = true
+hex.workspace = true
+piik-diagnostics.workspace = true
+piik-input-route.workspace = true
+piik-native-capture.workspace = true
+piik-protocol.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+
+windows = { workspace = true, features = [
+    "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_StationsAndDesktops",
+    "Win32_System_Threading",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Input_XboxController",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[dev-dependencies]
+tempfile.workspace = true
+tracing-subscriber.workspace = true
+zip.workspace = true
+
+[lints]
+workspace = true

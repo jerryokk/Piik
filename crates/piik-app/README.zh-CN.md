@@ -1,0 +1,128 @@
+# Piik App
+
+[English](./README.md) · 简体中文 · [上手指南](../../docs/guide/getting-started.zh-CN.md)
+
+Piik App 是 Piik 的 Windows 房主端，在自己的窗口中提供本地房间、临时公网邀请与原生屏幕采集。观众用浏览器加入。
+
+## 运行程序包
+
+分步操作见[上手指南](../../docs/guide/getting-started.zh-CN.md#用-piik-app-分享)。
+
+向提供 Piik 的人获取 Windows x64 程序包，完整解压，保留 App 程序旁的 `runtime` 目录，运行 `piik-app.exe`。
+启动页显示在 App 窗口中，房间也在同一窗口中打开。再次运行 `piik-app.exe` 会切换到已打开的窗口。
+
+## 运行模式
+
+选择 **本地房间** 或 **公网邀请**，点击 **进入 Piik** 启动房间服务。
+改用自建站点开房间时，[授权该站点](#已授权站点)即可。
+
+App 会记住上次确认的房间模式。首次使用默认选中 **公网邀请**，确认后才启动；
+有收藏站点时，启动后直接打开该站点。
+
+替换 App 的操作见[升级步骤](#升级)。
+
+### 本地房间
+
+选择 **本地房间**，在设备间可互相访问的局域网中使用。房间仅在本次 App 运行期间有效。
+
+App 自动选择唯一的活动地址或私有 IPv4；有多个地址时，在启动页的 **局域网邀请地址** 中选择。
+使用[虚拟局域网](../../docs/guide/network.zh-CN.md#可选虚拟局域网)时，选择对应的虚拟 IPv4。
+
+朋友使用该地址下的 HTTPS 邀请，房主使用 App 窗口中的本机页面。朋友首次访问时，需与房主的 App 核对
+[证书指纹](../../docs/guide/troubleshooting.zh-CN.md#本地-https-证书提示)；App 重启后重新确认。
+
+### 公网邀请
+
+选择 **公网邀请**，在 App 窗口中创建房间，再发送邀请链接。
+程序包中的 Cloudflare Tunnel 提供临时 `trycloudflare.com` HTTPS 地址，App 关闭后失效，
+下次启动会生成新地址。需要固定地址时，请使用自建的 Piik 站点。
+
+本地房间和公网邀请的画面、声音通过 P2P 传输，不经过网页隧道；需要可用的 UDP 媒体路径，
+没有服务器媒体转发（SFU）或 TURN 中继。隧道或媒体连接失败时，查看
+[网络排查](../../docs/guide/network.zh-CN.md)与[公网邀请排查](../../docs/guide/troubleshooting.zh-CN.md#公网邀请创建失败或出现-1033)。
+
+公网邀请使用 Cloudflare、小米和 Bilibili 的 STUN 服务发现可连接地址。
+被联系的服务商能看到你的公网 IP、端口和请求时间；这些请求不包含分享画面、声音、
+聊天或房间密码。公网邀请可在启动 App 前通过
+`PIIK_STUN_URLS` 替换 STUN 服务，示例见 [App 配置](../../docs/standards/configuration.md#piik-app-configuration)。
+搭配已授权站点时使用站点的 `STUN_URLS`；App 本地房间不配置公共 STUN。
+
+### 已授权站点
+
+在启动页输入 Piik 站点地址，确认该站点的 App 访问权限，站点会在 App 窗口中打开。
+详细操作见[连接步骤](../../docs/guide/getting-started.zh-CN.md#通过已有站点使用-app)。
+
+启动页会列出已授权站点：
+
+- 点击站点打开，**×** 取消该站点的 App 连接，其他站点与本地房间继续运行。
+- **☆** 选择一个下次启动时打开的站点；取消星标可恢复启动页，撤销对应授权也会清除星标。
+  授权新站点会保留已有授权。
+- 点击站点上已连接的 **App** 按钮可回到启动页。
+
+新的公网邀请网址需要单独授权。房间与已启用的 SFU 转发仍由站点提供。
+
+## 采集
+
+房主页面提供摄像头采集，以及可用的原生窗口或屏幕，请明确选择来源。
+Windows 原生采集提供 VP8/Auto/H264，Auto 会为本次分享选定一种编码。
+设置要求见 [Windows 采集指南](../../native/capture/windows/README.md)。
+原生采集的画质可在[分享设置](../../docs/guide/sharing.zh-CN.md#画面与声音设置)中调整。
+
+Windows App 检测到采集能力支持时，选源器的 **程序 / 窗口** 和 **屏幕** 页会出现
+**显示采集边框** 开关，默认关闭。
+选取或切换来源时可以修改，本次房主页面会记住选择。
+Windows 10、系统策略或其他正在进行的采集可能让黄框保持可见，分享仍可正常进行。
+Windows 10 的可选处理方法见[采集边框问题排查](../../docs/guide/troubleshooting.zh-CN.md#windows-分享时出现黄框)。
+
+## 配置与命令行
+
+App 配置保存可选的本地站点口令。留空表示本地站点开放进入；需要口令时，在启动页填写后再启动。
+观众邀请独立授予对应房间的访问权，详见[房间与访问](../../docs/standards/rooms-access.md)。
+
+保存的偏好、配置路径与环境变量见
+[App 配置](../../docs/standards/configuration.md#piik-app-configuration)。
+开发或自动化运行时，可直接指定模式，跳过启动页：
+
+| 参数 | 模式 |
+| --- | --- |
+| `--local` | 本地房间；有多个可能的局域网地址时，添加 `--lan-address <address>` |
+| `--link` | 临时公网邀请 |
+| `--site <origin>` | 保存并打开 Piik 站点 |
+
+## 升级
+
+App、Server 与站点来自同一个 Piik 构建，请使用同一次下载的程序包；
+来自其他构建的页面会被拒绝。
+
+1. 向提供 Piik 的人获取新版程序包与版本说明。
+2. 使用本地房间或公网邀请时，停止分享并关闭 App，完整解压新版程序包，重新启动后发送新邀请。
+3. 使用自建站点时，由管理员先[更新 Server](../../docs/operations/self-hosting.zh-CN.md#长期运行与更新)，
+   再更新连接的 App，并刷新所有观看页面。
+
+重启 App 或 Server 会中断当前分享。
+
+## 窗口与关闭
+
+Piik App 只有一个窗口。再次启动会切换到该窗口，不会打开第二个 App。
+关闭窗口即退出：结束本地房间，停止本地服务与临时公网链接。
+
+## 问题排查
+
+### Chromium WebRTC 连接
+
+观众浏览器的设置、扩展或管理策略可能阻止 WebRTC UDP，包括房主电脑上浏览器的媒体连接。
+按文档中心的 [浏览器 WebRTC 排查](../../docs/guide/network.zh-CN.md#浏览器限制了-webrtc)操作。
+特定编码失败时，另见 [Windows H264 排查](../../docs/guide/troubleshooting.zh-CN.md#windows-上-h264-分享失败)。
+
+### 诊断
+
+在启动房间或连接站点前，先在启动页开启 **诊断启动**，复现问题后在 App 中导出诊断包（本地 ZIP）。
+启动页出现前就失败时，使用 `--debug`。导出不会停止分享或上传文件。请将诊断包发给提供 Piik 的人。
+浏览器诊断通过主题按钮后的 **帮助 → 诊断** 开启：确认重新加载后，使用 **帮助 → 网页报告** 下载。
+调查浏览器与 App 配合的问题时，请提供同一次复现的两份报告。
+[诊断参考](../../docs/standards/configuration.md#diagnostics)说明日志位置、导出命令、保留规则与隐私边界。
+
+## 开发者参考
+
+[App 开发指南（英文）](./DEVELOPMENT.md)集中说明源码构建、打包、桌面图标与验证入口。
+维护者的 Release 发布流程见[部署与发布（英文）](../../docs/operations/release.md)。

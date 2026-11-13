@@ -4,8 +4,10 @@ Piik-owned code uses the root [MIT license](../LICENSE). Dependencies retain
 their own licenses; MIT does not replace their copyright notices or terms.
 
 The [pinned source index](./upstream.json) records exact upstream commits and
-SHA-256 values for Cloudflared, the WebRTC SDK, and npm packages that omit license
-files.
+SHA-256 values for Cloudflared, the WebRTC SDK, and npm packages or Rust crates
+whose published package omits license files. When the upstream repository has no
+license file either, the entry pins the canonical SPDX/Mozilla text of the
+declared license and names that repository revision.
 The retained text normalizes line endings and incidental whitespace only.
 The Cloudflared text includes its root and dependency LICENSE, COPYING, and
 NOTICE files, including platform variants. Generate its dependency inventory
@@ -15,26 +17,16 @@ The Windows capture adapter statically links the pinned WebRTC SDK, including
 its libvpx encoder. The App's native notices retain the SDK's collected
 third-party license texts; these dependencies do not become MIT-licensed merely
 because Piik's adapter is MIT-licensed.
-Linux packages that include the native capture binary include
-`linux-system-dependencies.txt`, the full LGPL-3.0-only text for libportal, and
-the full GPL-3.0 text referenced by that license. The system shared libraries
-and services are not bundled; the package still carries the license texts for
-the linked capture path. Packages without native capture do not include these
-capture-specific notices.
 
 `npm run dev` and `npm run build:web` generate `/third-party-licenses.txt`
 offline from installed, lockfile-matched Web runtime dependencies.
-The application release and App assembly each add the Go toolchain notice
-and the license files of the modules actually compiled into that binary; the
-App package also carries the pinned Cloudflared notices. Missing license
-texts or changed pinned contents stop packaging.
-
-LiveKit media-core packages are version-pinned under Apache-2.0. The
-[scoped dependency repairs](../internal/thirdparty/README.md) record the retained
-estimator corrections and temporary allocator input. Original Piik adapters remain MIT; adapted upstream
-probe orchestration retains its Apache-2.0 attribution in the source. Redistribution retains
-the module's license and applicable notices through the same Go notice collector.
-Any later copied or modified upstream file must retain its attribution and mark
+The Server release and App assembly each add the Rust standard library notice
+and, from offline `cargo metadata`, the license expression and texts of every
+third-party crate linked into that binary for `x86_64-pc-windows-msvc` (normal
+dependencies only; build scripts, proc-macros and dev-dependencies are not
+shipped). The App package also carries the pinned Cloudflared notices. Missing
+license texts or changed pinned contents stop packaging.
+Any copied or modified upstream file must retain its attribution and mark
 the modification. Prefer public API composition over a maintained source fork.
 
 Dependency updates are explicit rebuilds, not live updates in a running binary.
@@ -42,11 +34,5 @@ Review relevant upstream advisories and actual reachable dependencies at release
 an affected serious vulnerability warrants an earlier update. Mature media code
 is not exempt from vulnerability checks or focused upgrade verification.
 
-The Linux license texts come from the GNU license pages:
-`https://www.gnu.org/licenses/lgpl-3.0.txt` and
-`https://www.gnu.org/licenses/gpl-3.0.txt`.
-
 Update the corresponding source text and index when a pinned runtime changes.
-The two [scoped NAT dependency repairs](../internal/thirdparty/README.md) retain
-upstream source and Apache-2.0 attribution; their license files enter App notices
-through the same Go module collector. No license-scanning dependency is needed.
+No license-scanning dependency is needed.

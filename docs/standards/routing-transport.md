@@ -1,9 +1,9 @@
 # Routing And Transport
 
 This file owns the user-visible routing and transport contract.
-[ADR-0005](../adr/0005-automatic-hybrid-media-routing.md) owns the controller
-algorithm and resource invariants; [configuration](./configuration.md)
-owns ports and [self-hosting](../operations/self-hosting.md) owns service setup.
+[Signaling and routing](../architecture/routing.md) owns the controller algorithm
+and resource invariants; [configuration](./configuration.md) owns ports and
+[self-hosting](../operations/self-hosting.md) owns service setup.
 
 ## Topology
 
@@ -18,7 +18,7 @@ owns ports and [self-hosting](../operations/self-hosting.md) owns service setup.
 
 Every deployment uses this controller. Leaving embedded SFU disabled keeps the
 same bounded P2P graph without its SFU fallback and fixes Privacy mode on for all
-rooms, including App Local and public-link rooms. The server enforces that policy
+rooms, including App Local and Public Link rooms. The server enforces that policy
 for waiting and active participants; there is no separate Host-star mode.
 
 A Hosted operator may require SFU-only media through `SFU_ONLY=true`. The same
@@ -38,35 +38,28 @@ sharing. The server-validated route policy remains fixed for that share generati
   bounded SFU suffix;
 - peer-only mode excludes SFU publication, subscription, bootstrap, and quality
   candidates, while retaining the same bounded Peer graph and clear exhausted
-  failure; and
+  failure;
 - native-edge topology convergence is enabled by default. The Host may disable
   it before sharing; when disabled, quality evidence stays diagnostic and
-  availability routing is unchanged;
-- NAT traversal enhancement requires an exact three-destination STUN survey:
-  a Site may use self-hosted 3478/3479/3480, Public Link uses its bounded public survey, and
-  pure LAN supplies none. Current pages automatically use this capability for
-  Browser and Native P2P edges, without a Host-facing switch. SFU-only policy
-  excludes it. Ordinary ICE and Native gateway mapping remain independent.
-  Each Native connection uses one media socket for IPv4 and, where available, IPv6
-  direct connections; its STUN survey and best-effort gateway mapping use IPv4.
-  Availability and background direct acquisition share a bounded budget of
-  four actual connection attempts per eligible parent/session opportunity:
-  the initial attempt plus three retries. Completion, failure and timeout settle
-  those attempts; a choice canceled by changed prerequisites keeps its opportunity.
-  The first has no retry label; subsequent
-  attempts show retry 1/3, 2/3 and 3/3 on pages supporting that progress format.
-  Retries use the same serial controller and normal operation deadlines;
-  waiting Viewers and untried parents receive their opportunities first.
-  A retry may use bounded two-App socket preparation under ADR-0009 before its
-  one Pion connection. The first attempt and Browser-only transport stay ordinary;
-  failed optional preparation cannot disable the App for the session. Socket
-  ownership transfers only after mutual success; cancellation joins workers
-  before freeing their slot.
-  It is not a participant capability, route score, or SFU preference. Candidate
-  generation and selected-pair diagnostics retain only
-  `ordinary | predicted | unknown` provenance.
-  [ADR-0009](../adr/0009-optional-nat-prediction.md) owns the bounded behavior
-  and evidence boundary.
+  availability routing is unchanged; and
+- NAT traversal enhancement requires an exact three-destination STUN survey: a
+  Site's self-hosted 3478/3479/3480, Public Link's bounded public survey, and
+  none on pure LAN. Current pages apply it automatically to Browser and Native
+  P2P edges, without a Host-facing switch; SFU-only policy excludes it. Ordinary
+  ICE and Native gateway mapping remain independent. Each Native connection uses
+  one media socket for IPv4 and, where available, IPv6 direct connections; its
+  STUN survey and best-effort gateway mapping use IPv4.
+  Availability and background direct acquisition share four actual connection
+  attempts per eligible parent/session opportunity. Attempts after the first
+  show retry 1/3, 2/3 and 3/3 on pages supporting that progress format, use the
+  same serial controller and deadlines, and yield to waiting Viewers and untried
+  parents. A retry may use bounded two-App socket preparation before its one
+  str0m connection; the first attempt and Browser-only transport stay ordinary,
+  and failed optional preparation cannot disable the App for the session.
+  This is not a participant capability, route score, or SFU preference;
+  diagnostics retain only `ordinary | predicted | unknown` provenance.
+  [Signaling and routing](../architecture/routing.md#nat-traversal) owns the
+  mechanism and evidence boundary.
 
 These are route-policy gates, not new routing algorithms. Changing any
 policy requires stopping the current share and starting another generation.
@@ -90,46 +83,28 @@ P2P quality repair and service to downstream children keep their existing owners
 
 The applied choice survives signaling reconnect and source/share replacement.
 The Viewer's explicit preference is remembered within the Browser origin and
-requested again on capable Sites. An incompatible site or share policy applies
-Auto without overwriting that personal preference. Discovery gates
-the optional command, and replies go only to opted-in Viewers; existing 2.x
-participants retain their established protocol and automatic behavior.
+requested again after a reconnect or a source change. An incompatible site or
+share policy applies Auto without overwriting that personal preference, and the
+automatic route remains the default when the Viewer has no preference.
 
 ## Endpoint And Server Capacity
 
 Every non-server endpoint has one server-authoritative steady outbound media-
-copy cap. The site's ordinary default `C` is `2`, configurable as `1`, `2`, or `3`.
-On capable pages, the Host sets the room's default from `1` to `20`; this also
-governs the Host's own outbound copies. A Viewer follows that default or chooses
-a personal limit from `0` to `20`, either lower or higher. Zero receives without
-relaying. Each applied limit remains bounded by that endpoint's reported media
-capability. A smaller capability limits the applied value without overwriting
-the requested personal limit.
-
-The room default belongs to the current live room and survives Host signaling
-reconnect, Host replacement and share replacement. Personal choices belong to
-the current visit and are replayed by the page after signaling recovery or
-backend rediscovery. A new WebSocket must opt into capacity settings before
-receiving room-default updates. Published pages keep their original site cap
-and explicit relay-volunteer behavior; their authenticated capacity field and
-acknowledgement shape remain unchanged.
-
-Reducing either limit or returning a Viewer to the room default schedules
-affected children through the same serial operation, preserving current media
-and the relay's subtree while the replacement prepares. Actual parent selection
-remains automatic. This is ordinary Peer forwarding, with no separate SFU
-service, relay role or scheduling algorithm.
-
-Capacity applies to usable parent paths, not summed spare slots across the room.
-In P2P-only mode, a zero-capacity leaf can occupy the Host's sole outgoing slot
-and leave later Viewers without a route. They receive explicit route failure;
-increasing the room or that parent's limit makes new paths eligible through
-ordinary reconciliation. The controller does not globally rotate healthy roots.
+copy cap `C`, default `2` and configurable only as `1`, `2`, or `3`:
 
 - one peer child consumes one copy;
 - the Host's single SFU publication consumes one copy;
-- upstream receive and local preview are free;
+- upstream receive is free;
 - role, Browser, UA, visibility, and codec do not create another tier.
+
+A Viewer can also volunteer to relay to more participants for the current
+visit. It starts with one extra child above the ordinary cap and may select a
+higher maximum within its reported capability, at most the room's 20-Viewer
+limit. The requested maximum survives backend rediscovery within that visit; a
+smaller available capability limits the applied value without replacing the
+choice. Withdrawing consent schedules affected children through the same
+operation rather than abruptly dropping the subtree. This remains an ordinary
+Peer relay, with no separate SFU service or authority.
 
 A make-before-break transition may use the one admitted overlap slot and must
 return to steady capacity at commit or abort. SFU publication ingress and
@@ -138,11 +113,11 @@ ordinary endpoint child counts are not server capacity.
 
 ## Room Media
 
-One room controller and its existing serial
-operation serve both picture and voice. Opening and joining room voice can acquire
-the graph before sharing; picture start attaches a new video generation and
-picture stop removes that generation while voice remains. Empty rooms allocate
-no media connections, and page entry alone creates no room.
+One room controller and its existing serial operation serve both picture and
+voice. Opening and joining room voice can acquire the graph before sharing;
+picture start attaches a new video generation and picture stop removes that
+generation while voice remains. Empty rooms allocate no media connections, and
+page entry alone creates no room.
 
 The directed tree still places each Viewer under one parent. Independent Opus
 publications travel both ways along its permitted edges, excluding the ingress
@@ -151,7 +126,7 @@ picture retains its existing Browser/Native sender and adaptation owners.
 There is no all-pairs mesh or second route planner. SFU voice reuses its existing
 UDP listener and admission, including on SFU-only sites.
 An audio input's lifetime is separate from its reusable listening output.
-Changing publishers preserves the negotiated output while the mature forwarding
+Changing publishers preserves the negotiated output while the forwarding
 component maintains its RTP clock and feedback. Revoking a source stops both
 new and already-buffered delivery; stale source callbacks cannot affect its
 replacement.
@@ -162,11 +137,11 @@ uses actual transport connection, without requiring samples or a video frame.
 Video-only attachment to an already committed room edge uses its own fresh
 physical identity and decoded-frame proof. Failed attachment evidence ends when
 an involved endpoint session changes; proven picture and room transports remain.
-Retired facet callbacks cannot
-invalidate a replacement. Reusing a room reservation waits for its previous
-picture facet's physical close and reader join; full retirement joins those
-facets before releasing admission. Stop, pause and failure statuses describe the
-affected consumer; a voice failure does not become a video error.
+Retired facet callbacks cannot invalidate a replacement. Reusing a room
+reservation waits for its previous picture facet's physical close and reader
+join; full retirement joins those facets before releasing admission. Stop, pause
+and failure statuses describe the affected consumer; a voice failure does not
+become a video error.
 When current decoded-picture proof still establishes a healthy committed path,
 a failed companion voice transport is recreated on that same path without
 invalidating picture readiness or consuming a topology candidate. Without that
@@ -184,20 +159,18 @@ Healthy current edges remain sticky. When admitted overlap exists, a usable old
 route stays active until the exact candidate child decodes a first new frame;
 the candidate must still be connected when that proof is accepted and when it
 replaces playback. ICE connected alone is not commit proof. Availability repair
-may instead use the explicit bounded-gap plan defined by ADR-0005 when no overlap
+may instead use the explicit bounded-gap plan defined by
+[signaling and routing](../architecture/routing.md#transition-shapes) when no overlap
 slot exists.
 Failure or stale authority releases the candidate and preserves unaffected
-branches. An operation's purpose is immutable; availability work preempts a
-background operation by replacing it rather than changing its meaning. An
-internally created or retired SFU publication does not by itself reopen an
-exhausted media route.
+branches.
 
 Direct peers receive the first bounded opportunity, with SFU used for
 availability when direct paths cannot provide media. Remaining direct paths may
 converge behind a working SFU route. Relay-ingress failure reparents that relay
 without discarding its subtree; departure and capacity changes move only affected
-children. ADR-0005 owns filtering, ordering, cursor, revision, reservation, and
-rollback mechanics.
+children. [Signaling and routing](../architecture/routing.md#the-model) owns operation purpose, filtering, ordering, cursor, revision,
+reservation, opportunity and rollback mechanics.
 
 Reauthentication rebinds retained media. Newly eligible parents and session
 opportunities restore direct convergence behind healthy SFU edges through that
@@ -205,100 +178,77 @@ same continuation owner. The existing session-scoped ledger bounds these
 attempts; repeated capacity or session updates do not reopen spent opportunities.
 
 Trickled candidates and their completion retain the gathering's ICE identity
-across SDP exchanges. A delayed completion cannot close a newer gathering;
+across SDP exchanges, so a delayed completion cannot close a newer gathering;
 ordinary renegotiation does not create a new ICE generation. Address observations
-belong to that gathering, even when ICE restart retains the physical socket.
-The merged collector owns completion across ordinary and supplemental candidates.
+belong to that gathering even when ICE restart retains the physical socket, and
+retiring one gathering does not cancel another or close healthy media.
 
 Transport readiness uses the current PeerConnection state when consumed,
 including after Native or SFU event queues. Historical transport loss
 still retires input permission; a recovered connection requests a fresh input
 handshake rather than restoring the previous grant.
 
-Five seconds is a scheduling window only while another bounded candidate or SFU
-fallback remains. It advances a silent Peer candidate instead of delaying the
-next available route; it is not interpreted as terminal ICE failure. The final
-or only Peer candidate remains until the unchanged total operation deadline.
-Transport-connected progress also retains a candidate through that deadline.
-Either exact preparing endpoint can report that progress, so a delayed Viewer
-confirmation does not discard a transport already observed by its parent.
-This cannot commit the route: first-frame readiness remains Viewer-owned, and
-progress never extends the total operation deadline.
-If that deadline expires before later candidates are tried, rollback consumes
-only the visited prefix. The same scheduler may start a fresh bounded operation
-for the remaining opportunities; an untried SFU precedes a repeated Peer attempt,
-while a fresh Peer parent still has priority. A connected transport cannot spend
-another route's opportunity merely by failing to deliver its first frame.
-Consequently a working SFU route can carry media while its one-candidate direct
-convergence uses the full background operation, and peer-only acquisition does
-not abandon its only possible route at the foreground boundary.
-The pending Viewer transport reports an actual Browser failure but installs no
-shorter initial or disconnected-state deadline. Viewer-owned reconnect timing
-begins only after that exact candidate commits as the active route.
-Either preparing endpoint reports local rejection or connection-start failure
-to that same operation immediately; it does not wait out a silent candidate's
-deadline or start an independent recovery loop.
-When NAT traversal enhancement is enabled, another operation may use the
-remaining connection-attempt budget after rollback. The waiting display uses the actual
-server-issued attempt ordinal; it never counts time as an attempted connection.
-Committed P2P recovery first requests an ICE restart, then requests a rebuild
-if necessary, within the existing two-request budget. A sender without restart
+This file owns acquisition timing. Its five-second no-progress window is
+scheduling, not terminal ICE failure: the final or only Peer candidate, and one with connected
+transport, waits for the unchanged total deadline, so peer-only acquisition does
+not abandon its only route at the foreground boundary. Either exact preparing
+endpoint may report that progress, which never commits the route or extends the
+deadline; first-frame readiness stays Viewer-owned. Either endpoint reports local
+rejection or connection-start failure to the same operation immediately, without
+waiting out a deadline or starting its own recovery loop. The waiting display
+uses the actual server-issued attempt ordinal, never elapsed time.
+
+Committed P2P recovery first requests an ICE restart, then a rebuild if
+necessary, within the existing two-request budget. A sender without restart
 support, including the current Native sender, replaces its connection on that
-first request.
-A replacement picture connection keeps its room and voice assignment but
-starts without the previous connection's picture proof. Decoded progress for
-its current physical identity restores relay eligibility through the existing
-receive-quality report.
-Restart authority follows the exact retained edge and its endpoint sessions;
-an ancestor repairing its own ingress does not revoke that edge's recovery.
-The budget belongs to the current parent and survives physical connection or
-Browser/Native backend replacement. Only a connected transport or a new parent
-resets it; replacing an unconnected backend cannot renew recovery indefinitely.
-Host signaling status is not transport-failure evidence. Its offline status alone
-does not cancel current-edge recovery or retire a relay's downstream connections.
-Capable Native receivers also renegotiate that connection while retaining the
+first request. Restart authority follows the exact retained edge and its
+endpoint sessions; an ancestor repairing its own ingress does not revoke that
+edge's recovery. The budget belongs to the current parent and survives physical
+connection or Browser/Native backend replacement. Only a connected transport or
+a new parent resets it; replacing an unconnected backend cannot renew recovery
+indefinitely. Host signaling status is not transport-failure evidence: offline
+status alone does not cancel current-edge recovery or retire a relay's
+downstream connections.
+
+Capable Native receivers renegotiate that connection while retaining the
 encoded source, local playback and downstream edges when its codec/audio shape
-is unchanged. Pion owns ICE restart; each actual gathering owns fresh supplemental
-candidates. Native STUN observations share an in-flight transaction only within
-one gathering. Discovery uses the existing media socket; retiring one gathering
-does not cancel another or close healthy media.
-Each actual gathering also refreshes a previously successful gateway mapping;
-the requested lease does not prove that the gateway retained its state. Ordinary
-SDP renegotiation does not refresh mappings, and this adds no background poller.
-A Native connection owns its UDP socket and optional gateway mapping. A new
-connection receives an independent socket; ICE restart retains the current one.
-Discovery and media must use that same connection-owned socket. Sharing a socket
-between physical connections can collapse an admitted overlap into one remote
-address/port, which Pion's UDP mux cannot demultiplex. Encoded sources remain
-shared; this isolation changes neither route authority nor copy capacity.
-A changed media shape replaces the source and its dependent edges.
-It does not require NAT prediction or reopen the route candidate. A prepared
-candidate instead follows its current route operation's failure path, without
-an independent restart loop.
+is unchanged; a changed media shape replaces the source and its dependent edges
+without requiring NAT prediction or reopening the route candidate.
+str0m owns ICE restart. Each actual gathering owns fresh supplemental candidates,
+shares an in-flight Native STUN transaction only within that gathering,
+and refreshes a previously successful gateway mapping, since a requested lease
+does not prove the gateway kept it; ordinary renegotiation refreshes nothing and
+there is no background poller. A Native connection owns its UDP socket and
+optional gateway mapping, used by both discovery and media; a new connection
+receives an independent socket, so an admitted overlap never collapses into one
+remote address/port, while ICE restart retains the current one. Encoded sources
+remain shared; this isolation changes neither route authority nor copy capacity.
+[Engineering](../architecture/modules.md#runtime-lifecycles) owns gathering lifecycle.
+A prepared candidate follows its route operation's failure path, without an
+independent restart loop.
 
 A Browser sender's subsequent audio-direction SDP transaction has a 15-second
-completion deadline. A lost offer/answer must not leave later microphone/source
+completion deadline, so a lost offer/answer cannot leave later microphone/source
 changes queued forever behind otherwise connected media. Timeout retires that
 exact edge through its existing preparation/recovery owner; coalesced changes
 do not renew the deadline. This also applies if audio changes during preparation.
 Initial acquisition and ICE restart retain their existing route/recovery deadlines;
 ordinary signaling loss without a pending media transaction preserves healthy media.
 
-When a newly committed Host-root Viewer exposes unused downstream capacity while
-another Host root has at least two direct children, the same background operation may
-move one of those children to the new root. The candidate must prove a healthy
-native sender edge before commit. This one-shot event-driven move reduces root
-fanout skew; it is not periodic balancing and does not move a healthy branch
-without admitted overlap.
+Host-root fanout convergence under
+[Signaling and routing](../architecture/routing.md#candidate-choice)
+is one-shot and event-driven: it is not periodic balancing and never moves a
+healthy branch without admitted overlap and a proved candidate sender.
 
-Framework reconnect runs before route reassignment. Manual media reconnect also
+Framework reconnect runs before route reassignment. Manual media reconnect
 recovers only the current P2P parent or current SFU subscription; it does not
 perform quality selection or choose another route.
 A Viewer that loses room signaling keeps its membership and committed edges for
 20 seconds, covering the nominal backoff for the Browser's first five reconnect
 attempts; connection and authentication time can extend those attempts.
-Reconnecting with the same client rebinds retained edges. Signaling absence alone does not
-retire a media edge before then; its route failure or that window's expiry does.
+Reconnecting with the same client rebinds retained edges. Signaling absence alone
+does not retire a media edge before then; its route failure or that window's
+expiry does.
 Current-edge P2P signaling remains valid during candidate overlap. Accepting a
 replacement from that parent cancels conflicting optional preparation so the
 replacement can complete; a retired candidate cannot take its place afterward.
@@ -306,16 +256,15 @@ Failure reports belong to the failed physical connection, not another
 preparation's phase. A committed connection's identified failure remains valid
 across unrelated room revisions only while its endpoint session and connection
 identity still match; future revisions and retired connections are rejected.
-Preparation reports retain their exact operation fence. Reports without a
+Preparation reports retain their exact operation fence; reports without a
 connection identity retain their exact room-revision fence.
 
 An individually rejected ICE candidate is disposable input. Browser
 `addIceCandidate` candidate-processing errors are recorded without aborting the
 remaining queue or SDP answer; missing-description/lifecycle errors remain
-visible. Native input follows the same boundary. Actual transport state and the
-route operation's deadline own failure, not one rejected candidate.
-This includes SFU and local Browser/App media connections and codec probes;
-their different consumers do not change candidate rejection semantics.
+visible. Native input, SFU and local Browser/App media connections and codec
+probes follow the same boundary: actual transport state and the route
+operation's deadline own failure, not one rejected candidate.
 
 ## SFU Fallback
 
@@ -330,17 +279,17 @@ share and publication; it issues no separate media token or room-service URL.
 Browser SFU PeerConnections use the server's UDP candidates and no external
 ICE-server list. Ordinary peer connections use deployment STUN. Hosted Piik
 owns its configured Binding-only STUN listeners and optional SFU UDP listener in
-the same Go process. Piik
-configures no TURN, ICE/TCP, media TCP, or TLS-relayed media path. HTTPS/WSS is a
-separate control transport and remains TLS/TCP.
+the same Rust process. Piik configures no TURN, ICE/TCP, media TCP, or
+TLS-relayed media path. HTTPS/WSS is a separate control transport and remains
+TLS/TCP.
 
 SFU resources remain bounded throughout reservation, use, and cleanup; stale
 signaling cannot recreate off-ledger media. Grant revocation, Viewer leave,
 and SFU-to-P2P replacement close the exact physical subscription before releasing
 its egress reservation. Publication teardown closes its ingress and descendants
-before releasing their reservations. There is no outstanding external token to
-retain after those resources close. ADR-0005's graph and operation rules remain;
-[ADR-0013](../adr/0013-embedded-node-local-media.md) replaces the external-service lifecycle.
+before releasing their reservations. No external token outlives those resources;
+[Signaling and routing](../architecture/routing.md#sfu-fallback) owns the
+embedded lifecycle.
 
 Transient room-signaling loss does not close healthy SFU media. The current
 physical connection can restart ICE; actual terminal media failure returns to
@@ -349,50 +298,30 @@ An active configuration describes that connection; it cannot create a replacemen
 Browser subscriber. Replacement needs the controller's prepared subscription and
 first-frame proof. Reauthentication during an unfinished restart also returns
 that subscription to its route owner; sending an answer is not connection proof.
-Retained media keeps its original acquisition opportunity when signaling sessions
-change. Its failure cannot consume a new session's untried opportunity; a new
-physical connection binds the current one. This applies to Peer and SFU edges.
-An exhausted opportunity remains an explicit failure until an eligible new fact
-reopens acquisition. Source capture remains Host-owned throughout.
+Retained Peer and SFU media keep their original acquisition opportunity when
+signaling sessions change: their failure cannot consume a new session's untried
+opportunity, and a new physical connection binds the current one. An exhausted
+opportunity remains an explicit failure until an eligible new fact reopens
+acquisition. Source capture remains Host-owned throughout.
 
 ## Quality And Privacy Boundaries
 
-Browser WebRTC and the shared Pion/LiveKit media adapter own ICE, consent,
+Browser WebRTC and the shared str0m media layer own ICE, consent,
 congestion control, bitrate, frame rate, resolution, retransmission, pacing and
 layer selection. Direct-child media demand does not create a topology operation.
-When the per-share convergence gate is enabled, Piik uses an exact persistent native
-sender limitation only to trigger one measured experiment through the existing
-serial operation. Three fresh complete limited deltas from one exact sender may
-trigger that experiment on a newly committed availability or direct-convergence
-edge without a preceding clear delta. A quality- or root-convergence result must
-recover clear before it can rearm. The same Viewer must then prove three fresh
-overlapping P2P candidate windows with no freeze or pause and no lower delivered
-pixel area or rounded FPS, while the exact candidate sender has fresh clear
-native evidence at commit. The candidate need not show a strict gain before the
-retained sender closes. A complete
-zero-frame current window counts as zero delivery only when an overlapping
-candidate actually decodes clean video; two zero-frame paths remain unknown. A
-missing or limited exact candidate sender cannot commit; an expired one-shot
-relative proof rejects that candidate. An unknown current-sender window clears
-the trigger run but does not cancel an already-started bounded Peer experiment;
-healthy recovery, explicit reset, or identity change does. Failed candidates are
-not retried for the same exact sender sequence merely because an unrelated route
-fact changed, while a new parent or improved capacity transition remains a new
-opportunity. When no different Peer parent is eligible, the same operation may
-append one same-parent connection regeneration candidate; it uses the same
-first-frame, overlap, and proof rules and is damped by its exact post-commit
-sender identity. Ordinary quality moves remain Peer-to-Peer. SFU may
-join quality work only as Host fanout relief when every current Host-origin Peer
-edge, with at least two such edges, is persistently degraded; one Viewer moves
-before the controller observes the new topology again. During that overlap, the
-same Viewer must prove the SFU candidate does not regress delivered resolution,
-frame rate, or bitrate across persistent complete windows and produces no
-freeze or pause; otherwise the old Peer route stays. The Host publication
-ingress and every Viewer subscription are separate quality paths. One Viewer's
-SFU proof never authorizes another Viewer. Disabling the gate leaves quality
-state diagnostic. Piik has no weighted route score, general parent-wide
-prediction, all-pairs probe, periodic rebalance, persistent parent blacklist,
-NAT classification, or independent depth cap.
+
+When the per-share convergence gate is enabled, persistent limitation of one
+exact native sender may trigger one measured experiment through the existing
+serial operation. The old route keeps playing; a candidate commits only when the
+same Viewer proves, over fresh overlapping windows, no freeze, pause or delivered
+picture regression, and otherwise the old route stays. Ordinary quality moves
+are Peer-to-Peer; SFU joins only as Host fanout relief when every current
+Host-origin Peer edge, with at least two, is persistently degraded. One Viewer's
+proof never authorizes another. Disabling the gate leaves quality diagnostic.
+Piik has no weighted route score, general parent-wide prediction, all-pairs
+probe, periodic rebalance, persistent parent blacklist, NAT classification, or
+independent depth cap. [Signaling and routing](../architecture/routing.md#commit-and-recovery)
+owns the three-window trigger, proof, same-parent regeneration and rearm rules.
 
 Direct P2P exposes endpoint network addresses to the trusted peer. SFU media is
 encrypted hop-by-hop with DTLS-SRTP but terminates at the SFU; the product does
@@ -402,7 +331,7 @@ design. All-UDP-blocked networks currently end in bounded failure.
 App Local mode runs this graph without SFU or NAT prediction. Its selected LAN
 address supplies Binding-only STUN on the App's UDP port, so routed virtual
 LANs need not carry Browser mDNS; it uses no public discovery destination.
-One-link mode tunnels only HTTP/WebSocket control and adds public STUN to the
+Public Link mode tunnels only HTTP/WebSocket control and adds public STUN to the
 same Browser/Native P2P edges. Reachable peers form one mixed relay tree; an
 unreachable path adds no route type or score. App-enabled Site pages use that
 Site's transport configuration.

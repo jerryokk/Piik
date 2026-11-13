@@ -166,8 +166,11 @@ void ValidateCodecReadback(ICodecAPI* codec,
                            const VideoProfile& profile = kDefaultVideoProfile);
 void ForceKeyFrame(ICodecAPI* codec);
 ComPtr<IMFSample> CreateCallerOutputSample(const MFT_OUTPUT_STREAM_INFO& info);
+void ValidateOutputChange(IMFMediaType* current, IMFMediaType* next);
+// Returns null after accepting an output stream change and refreshing `info`;
+// the encoded sample follows with a later METransformHaveOutput.
 ComPtr<IMFSample> PullOutput(IMFTransform* transform,
-                            const MFT_OUTPUT_STREAM_INFO& info);
+                            MFT_OUTPUT_STREAM_INFO& info);
 ComPtr<IMFSample> CreateSurfaceSample(ID3D11Texture2D* texture,
                                       LONGLONG timestamp100ns,
                                       LONGLONG duration100ns);

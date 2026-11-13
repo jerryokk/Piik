@@ -69,7 +69,7 @@ const requestSchemas = {
 } as const;
 
 describe("shared wire fixture", () => {
-  it("carries the protocol constants the Go port mirrors", () => {
+  it("carries the protocol constants the Rust codec mirrors", () => {
     expect(fixture.constants).toEqual({
       signalingProtocol: SIGNALING_PROTOCOL,
       maxViewersPerRoomLimit: MAX_VIEWERS_PER_ROOM_LIMIT,
@@ -142,9 +142,6 @@ describe("shared wire fixture", () => {
         "client:signal",
         "client:signaling-challenge",
         "client:stop-sharing",
-        "client:subscribe-co-play-presence",
-        "client:subscribe-room-interactions",
-        "client:subscribe-room-voice",
         "client:room-voice-command",
         "client:viewer-quality-evidence",
         "createRoomRequest",

@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { AppHeader } from "../components/living/Header";
-import { Tooltip } from "../components/living/Tooltip";
-import { RoomCodeInput, RoomCodeError } from "../components/living/RoomCodeInput";
-import { HintComic } from "../components/living/hints";
+import { AppHeader } from "../ui/components/shell/Header";
+import { Tooltip } from "../ui/components/shell/Tooltip";
+import { RoomCodeInput, RoomCodeError } from "../ui/components/room/RoomCodeInput";
+import { HintComic } from "../ui/components/hints";
 import { Glyph } from "../ui/icons";
 import { useCopy } from "../ui/copy";
 import { roomRouteForExplicitEntry } from "../lib/session";

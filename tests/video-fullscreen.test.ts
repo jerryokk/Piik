@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { toggleVideoFullscreen, videoFullscreenState, type FullscreenVideo } from "../src/client/components/living/video-fullscreen";
+import { toggleVideoFullscreen, videoFullscreenState, type FullscreenVideo } from "../src/client/ui/components/playback/video-fullscreen";
 
 function player(native = false) {
   const screen = { requestFullscreen: vi.fn<() => Promise<void>>().mockResolvedValue() };

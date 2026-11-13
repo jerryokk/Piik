@@ -46,7 +46,7 @@ class H264Decoder final {
     Check(codec->SetValue(&CODECAPI_AVLowLatencyMode, &value), "codec-setting");
     // Let the MFT own its supported dimensions. Setting both global axis
     // ceilings preallocates a square and can fail even for a small input.
-    // Go validates SPS storage before this process; SelectOutput bounds its buffers.
+    // The Rust media edge validates SPS storage before this process; SelectOutput bounds its buffers.
   }
 
   ~H264Decoder() {

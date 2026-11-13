@@ -6,7 +6,7 @@ import {
   createStatsAccumulator,
   maxEncodedVideoFrames,
   mediaSourceRecord,
-} from "../src/client/webrtc/stats.ts";
+} from "../src/client/webrtc/stats";
 
 function report(timestamp = 1_000, trackIdentifier = "video-track") {
   const records = [

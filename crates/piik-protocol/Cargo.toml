@@ -1,0 +1,19 @@
+[package]
+name = "piik-protocol"
+description = "Piik wire contract: strict message decoding, encoding and scalar validators."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+regex.workspace = true
+# preserve_order keeps encoded key order equal to the TypeScript object literals.
+serde_json = { workspace = true, features = ["preserve_order"] }
+thiserror.workspace = true
+unicode-normalization.workspace = true
+url.workspace = true
+
+[lints]
+workspace = true

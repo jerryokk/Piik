@@ -1,0 +1,32 @@
+[package]
+name = "piik-signal"
+description = "Authenticated room signaling: sessions, presence, route effects and room voice over WebSocket."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+axum.workspace = true
+base64.workspace = true
+futures-util.workspace = true
+piik-config.workspace = true
+piik-diagnostics.workspace = true
+piik-ordered.workspace = true
+piik-protocol.workspace = true
+piik-room.workspace = true
+piik-route.workspace = true
+piik-sfu.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+tokio-util = { workspace = true, features = ["rt"] }
+tracing.workspace = true
+url.workspace = true
+
+[lints]
+workspace = true

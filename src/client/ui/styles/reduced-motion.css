@@ -1,0 +1,23 @@
+/* ---------- reduced motion: everything collapses to instant ---------- */
+
+/* Development catalogues use the same explicit scene poses as the system
+   preference; this is not another persisted product preference. */
+[data-comic-reduced-motion] *, [data-comic-reduced-motion] *::before, [data-comic-reduced-motion] *::after {
+  animation-duration: .01ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .lr-tv-static { animation: none; opacity: .35; }
+  .lr-chip, .lr-tile, .lr-language-menu button, .lr-source-option { transform: none !important; }
+  .lr-sharing-panel input[type="range"]::-webkit-slider-thumb { transform: none !important; }
+  .lr-sharing-panel input[type="range"]::-moz-range-thumb { transform: none !important; }
+  .lr-route-edge.is-pending { animation: none; }
+}

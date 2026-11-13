@@ -5,10 +5,8 @@ encoded storage and a 3840×2160 visible aperture at (0, 0). The visible picture
 is red; the right/bottom padding is blue. It contains no screen recording or user data.
 
 The Windows output-worker test decodes it through Media Foundation and verifies
-the dimensions and NV12 pixels handed to downstream encoders. The macOS geometry
-self-test uses its SPS/PPS to check CoreMedia's format interpretation without
-allocating a hardware decoder. Both run through `npm run check:native` on their
-respective platforms.
+the dimensions and NV12 pixels handed to downstream encoders. It runs through
+`npm run check:native`.
 
 To regenerate with FFmpeg and libx264:
 

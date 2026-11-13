@@ -1,0 +1,15 @@
+[package]
+name = "piik-media-testkit"
+description = "Dev-only harness: virtual clock, impaired in-memory network and str0m peers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+str0m.workspace = true
+str0m-netem.workspace = true
+
+[lints]
+workspace = true

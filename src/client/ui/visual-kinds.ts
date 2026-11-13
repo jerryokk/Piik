@@ -20,7 +20,7 @@ export type ComicKind =
   | "source-switching"
   | "source-starting"
   | "preview-paused"
-  | "update-available"
+  | "host-needs-app"
   | "debug-start"
   | "debug-export-failed"
   | "copy-failed"
@@ -43,7 +43,7 @@ export type ComicKind =
   | "encoder-limited"
   | "warning";
 
-export type Set1Kind =
+export type SharingHintKind =
   | "hint-share-start"
   | "hint-share-stop"
   | "hint-pause"
@@ -59,7 +59,7 @@ export type Set1Kind =
   | "hint-capture-window"
   | "hint-capture-display";
 
-export type Set2Kind =
+export type RoomHintKind =
   | "hint-copy-code"
   | "hint-shuffle-code"
   | "hint-create-room"
@@ -70,7 +70,7 @@ export type Set2Kind =
   | "hint-revoke-invite"
   | "hint-password";
 
-export type Set3Kind =
+export type SettingsHintKind =
   | "hint-quality"
   | "hint-audio-quality"
   | "hint-exclude-audio"
@@ -89,7 +89,15 @@ export type AdmissionHintKind =
   | "hint-admission-password"
   | "hint-admission-invite";
 
-export type Set4Kind =
+export type RouteHintKind =
+  | "hint-route-auto"
+  | "hint-route-p2p"
+  | "hint-route-p2p-required"
+  | "hint-route-sfu"
+  | "hint-route-sfu-required"
+  | "hint-client-local";
+
+export type ShellHintKind =
   | "hint-help"
   | "hint-topology"
   | "hint-close"
@@ -99,12 +107,6 @@ export type Set4Kind =
   | "hint-join-go"
   | "hint-theater"
   | "hint-theater-exit"
-  | "hint-route-auto"
-  | "hint-route-p2p"
-  | "hint-route-p2p-required"
-  | "hint-route-sfu-required"
-  | "hint-route-sfu"
-  | "hint-client-local"
   | "hint-app-ready"
   | "hint-client-site";
 
@@ -187,10 +189,11 @@ export type VoiceHintKind =
   | "hint-voice-undeafen";
 
 export type HintKind =
-  | Set1Kind
-  | Set2Kind
-  | Set3Kind
-  | Set4Kind
+  | SharingHintKind
+  | RoomHintKind
+  | SettingsHintKind
+  | RouteHintKind
+  | ShellHintKind
   | AdmissionHintKind
   | PlaybackHintKind
   | MetricHintKind

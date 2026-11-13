@@ -1,113 +1,74 @@
 # Current Status
 
-Last updated: 2026-11-06
+Last updated: 2026-11-10
 
 This is the compact execution/deployment index. Product modules own behavior,
 [verification status](./verification-status.md) summarizes material evidence limits,
 and Git/PRs own completed history.
 
-## Accepted Release Contract
+## Release Contract
 
-- The 2.0 release boundary uses Browser/server v24, Native control v10 and
-  capture v7. App and Site must upgrade together; 1.x cannot participate in a
-  2.0 session. SQLite schema 2 is unchanged.
-  [Versioning](./standards/versioning.md#public-compatibility-promise) owns
-  compatibility between published Web/App/Server versions.
+- One build only: App, Server and the Web client ship together from one source
+  revision, with Browser/server, Native control and capture identifiers that
+  reject a mismatched peer. SQLite schema 2 is current.
+  [Versioning](./standards/versioning.md) owns identity and interface changes.
 - Hosted Server defaults to SQLite schema 2. Room authority has no inactivity
   expiry by default; replacement/deletion or grant rotation/revocation ends the
   corresponding authority. Explicit memory mode and App Local end rooms at
   process exit. Site access retains its separate 24-hour idle lifetime within
   one service run; service restart requires site-password entry again.
-- Camera sharing and room voice are accepted product features. Source audio
-  follows the picture; room voice owns conversation microphones under the
-  same route controller. Optional Host commentary belongs to the share's audio
-  and has separate activation.
-  Device selection and sharing settings keep their owners. The
-  [capture assessment](./research/camera-and-microphone.md) owns platform behavior
-  and platform limits.
+- Camera sharing and room voice are product features. Source audio follows the
+  picture; room voice owns conversation microphones under the same route
+  controller. Optional Host commentary belongs to the share's audio and has
+  separate activation. Device selection and sharing settings keep their owners;
+  [media quality](./standards/media-quality.md) owns platform behavior and limits.
 
-## Accepted Interaction Phase
+## Interaction Phase
 
-Text chat, reactions, room voice and attended remote control are accepted product
+Text chat, reactions, room voice and attended remote control are product
 features. They use existing room authority and the shared route controller;
-picture, voice and input grants retain their separate lifetimes. The
-[room-interaction design](./research/room-interactions.md) records the design;
-[product standards](./standards/README.md) own current behavior.
-Release artifacts and operator records own delivery completion.
+picture, voice and input grants retain their separate lifetimes.
+[Rooms and access](./standards/rooms-access.md) owns their behavior and
+[architecture](./architecture/rooms.md) the design reasons.
 
 ## Current Work
 
-Room and personal relay limits preserve published compatibility and the existing
-routing owner;
-the [capacity contract](./standards/routing-transport.md#endpoint-and-server-capacity)
-defines the two setting scopes. Release artifacts and deployment records own
-delivery status.
-New release feedback has reopened Windows capture termination and
-Browser motion-sharing cadence investigations. Device-loss recovery now retains
-the active media session; the original termination triggers remain under
-investigation. Isolated 3.0 work
-proceeds from the accepted semantic model rather than a mechanical translation
-of the current implementation.
-[TODO](./todo.md) is the only unfinished-work ledger; Git and PRs own
-completed fixes. [Verification status](./verification-status.md) owns material
-acceptance and platform boundaries.
+The system is the Rust workspace with the Tauri Windows App; the Web client,
+Server and App share one core ([architecture](./architecture/system.md)).
+[TODO](./todo.md) is the only unfinished-work ledger and owns every open item;
+[verification status](./verification-status.md) owns measured acceptance and
+platform boundaries.
 
-The Android system-browser App shares the desktop Web UI and Go core,
-including Local/public-link rooms, Site approval, native screen capture and room
-voice. Its universal APK covers ARM64 and x64 through the shared release pipeline;
-[device evidence](./verification-status.md#device-evidence-boundary) and
-[remaining work](./todo.md) retain their existing owners. iOS remains separate.
-
-Room voice, shared keyboard/mouse and optional Windows virtual gamepads use the
-normal App/Web interfaces. App packages contain no optional input SDK or driver.
-Linux uinput has an isolated kernel check; desktop permission and game-recognition
-coverage is pending. macOS virtual HID needs an Apple entitlement and physical
-build/runtime checks. The [input assessment](./research/room-interactions.md#remote-co-play)
-owns platform details.
+Supported clients are the Windows x64 App Host and Browser Viewers. Room voice, shared
+keyboard/mouse and optional Windows virtual gamepads use the normal App/Web
+interfaces. App packages contain no optional input SDK or driver.
+[Rooms and access](./standards/rooms-access.md) owns the input contract.
 
 App Local invitations use HTTPS on the selected LAN address, with a loopback
 entry for the Host. Hosted Server supports direct HTTPS with temporary or
 operator-supplied certificates. The [HTTPS runbook](./operations/self-hosting.md)
-owns setup. Virtual LANs and frp use the existing room and UDP media paths.
-The website uses the selected bilingual film A, loaded on demand with shared
-product playback controls and a persistent final card.
+owns setup. Virtual LANs use the existing room and UDP media paths.
 
-Optional coordinated Native UDP preparation augments the existing retry owner.
-The [network laboratory](./research/network-lab.md) covers all Browser/App
-pairings, recovery, SFU policies and successful two-App preparation through
-sequential kernel NAT. These results do not establish a public success rate.
-Magicsock integration is not planned; its [controlled comparison](./research/nat-traversal.md#integration-cost-and-recovery-controls)
-records the technical basis.
+Optional coordinated Native UDP preparation augments the existing retry owner;
+[signaling and routing](./architecture/routing.md) owns its behavior. Controlled
+results do not establish a public success rate, and Magicsock integration is not
+planned.
 
-The [media assessment](./research/native-client-media.md#media-capability-extension-assessment)
-owns bounded output and live-control evidence. Additional codecs, surround
-delivery and end-to-end HDR remain outside the published phase.
+[Media quality](./standards/media-quality.md) owns bounded output and
+live-control behavior. Additional codecs, surround delivery and end-to-end HDR
+remain out of scope.
 
 ## Deployment
 
 The immutable release descriptor, runtime `REVISION` and operator deployment
 record own exact identity and postflight results.
 
-The private deployment uses one Go process for Web, room authority/signaling,
-STUN and optional SFU, with nginx for HTTPS. The
+Server and App packages are Windows x64 only. The Server runs one Rust process for
+Web, room authority/signaling, STUN and optional SFU behind an operator-supplied
+HTTPS proxy or its own TLS listener. The
 [self-hosting runbook](./operations/self-hosting.md) owns listeners and network
 configuration.
 
-The separate US [public demo](https://demo.piik.tv) is deployed with open site
-entry, persistent room authority and P2P-only media. Cloudflare fronts HTTP/WSS
-and caches static bundles; STUN uses a separate DNS-only hostname. Caddy owns
-origin HTTPS, and the standard systemd service runs the published Server package.
-Demo expires rooms after one hour without authenticated participants; the private
-deployment retains the default of no expiry. The operator record owns exact
-identity and postflight evidence. `piik.tv` runs on GitHub Pages behind
-Cloudflare; website delivery includes a bilingual documentation center built
-from repository guides.
-
-GitHub owns original Server and App packages; AtomGit mirrors them without
-rebuilding and verifies anonymous downloads against their checksums. Server
-packages cover Linux x64/ARM64 and Windows x64; Docker images are Linux-only.
-App packages cover Windows x64 and macOS/Linux x64/ARM64.
-Accepted product changes publish through the release workflow; standalone
-website/documentation changes deploy the site without creating App/Server
-versions. [Versioning](./standards/versioning.md) owns release identity, notes,
-compatibility and mirror publication.
+There is no hosted release channel: the person providing Piik distributes the
+Server and App packages directly. [Versioning](./standards/versioning.md#shipping)
+owns release identity and compatibility.

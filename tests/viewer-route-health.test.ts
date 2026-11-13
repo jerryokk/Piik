@@ -5,9 +5,10 @@ import { afterEach, expect, it, vi } from "vitest";
 import { EMPTY_METRICS } from "../src/client/types";
 import type { ViewerPeerEvents } from "../src/client/webrtc/viewer-peer";
 
-// Exercise the page's actual media callbacks, without needing a physical game.
-const source = ts.createSourceFile("ViewerPage.tsx", readFileSync(
-  new URL("../src/client/pages/ViewerPage.tsx", import.meta.url), "utf8",
+// Exercise the session hook's actual media callbacks, without needing a
+// physical game.
+const source = ts.createSourceFile("use-viewer-session.ts", readFileSync(
+  new URL("../src/client/pages/viewer/use-viewer-session.ts", import.meta.url), "utf8",
 ), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const owners = new Set(["ensurePeer", "reportActivePeerFailure", "noteReceiveFailure", "clearPeerState"]);
 const functions: string[] = [];

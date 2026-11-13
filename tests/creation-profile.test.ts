@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   readCreationProfile,
   saveCreationProfile,
-} from "../src/client/lib/creation-profile.ts";
+} from "../src/client/lib/preferences/creation-profile.ts";
 
 describe("Host creation profile", () => {
   afterEach(() => {

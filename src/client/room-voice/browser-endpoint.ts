@@ -1,5 +1,5 @@
 import type { ClientMessage, IceConfig, RoomVoiceState, VoiceConnection, VoiceDescription } from "../../shared/protocol";
-import { observeDebugConnection } from "../lib/debug-webrtc";
+import { observeDebugConnection } from "../lib/debug/webrtc";
 import { waitForConnectionOperation } from "../webrtc/connection-operation";
 import type { MicrophoneInput } from "../media/microphone-input";
 import { ViewerAudio } from "../media/viewer-audio";

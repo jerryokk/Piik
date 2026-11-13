@@ -5,7 +5,7 @@ export const NAT_TRAVERSAL_PATHS = [
 ] as const;
 
 export type NatTraversalPath = (typeof NAT_TRAVERSAL_PATHS)[number];
-export type CandidateSignalOrigin = "end" | "ordinary" | "predicted";
+type CandidateSignalOrigin = "end" | "ordinary" | "predicted";
 
 export function isPredictedCandidateFoundation(
   foundation: string | null,

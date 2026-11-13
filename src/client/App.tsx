@@ -25,28 +25,32 @@ import {
   isClientActivated,
   type ViewerRoute,
 } from "./lib/session";
-import { AppHeader } from "./components/living/Header";
-import { Btn, Pill } from "./components/living/primitives";
-import { Comic, type ComicKind } from "./components/living/Comic";
-import { LoadingStatus } from "./components/living/WaitingStatus";
+import { AppHeader } from "./ui/components/shell/Header";
+import { Btn, Pill } from "./ui/components/shell/primitives";
+import { Comic, type ComicKind } from "./ui/components/comic/Comic";
+import { LoadingStatus } from "./ui/components/people/WaitingStatus";
 import { Glyph } from "./ui/icons";
 import { applyLaunchCopy, useCopy } from "./ui/copy";
 import { consoleLanguage } from "./locales";
 import { initTheme } from "./ui/theme";
 import { debugError, installBrowserDebug, withBrowserDebug } from "./lib/debug";
+import { inAppShell } from "./lib/app-shell";
+import { HostNeedsApp } from "./ui/components/shell/HostNeedsApp";
 
 const TooltipPreviewPage = import.meta.env.DEV
-  ? lazy(() => import("./pages/TooltipPreviewPage").then((module) => ({ default: module.TooltipPreviewPage })))
+  ? lazy(() => import("./pages/preview/TooltipPreviewPage").then((module) => ({ default: module.TooltipPreviewPage })))
   : null;
 
 const StatusPreviewPage = import.meta.env.DEV
-  ? lazy(() => import("./pages/StatusPreviewPage").then((module) => ({ default: module.StatusPreviewPage })))
+  ? lazy(() => import("./pages/preview/StatusPreviewPage").then((module) => ({ default: module.StatusPreviewPage })))
   : null;
 const PlaybackPreviewPage = import.meta.env.DEV
-  ? lazy(() => import("./pages/PlaybackPreviewPage").then((module) => ({ default: module.PlaybackPreviewPage })))
+  ? lazy(() => import("./pages/preview/PlaybackPreviewPage").then((module) => ({ default: module.PlaybackPreviewPage })))
   : null;
 
 const appRoute = parseAppRoute(window.location.pathname);
+// Hosting belongs to the Piik App window; browsers keep Viewer/Join entry.
+const hostAvailable = appRoute.kind === "host" && inAppShell();
 const clientLaunchBootstrap =
   appRoute.kind === "host" || appRoute.kind === "viewer"
     ? takeClientLaunchBootstrap()
@@ -60,7 +64,7 @@ if (clientLaunchBootstrap?.presentation) {
 const clientAccessBootstrap = clientLaunchBootstrap?.accessToken ?? null;
 const initialViewerRoute = appRoute.kind === "viewer" ? readViewerRoute() : null;
 const hostPageModule =
-  appRoute.kind === "host" ? import("./pages/HostPage") : null;
+  hostAvailable ? import("./pages/HostPage") : null;
 const joinPageModule =
   appRoute.kind === "join" ? import("./pages/JoinPage") : null;
 const viewerPageModule =
@@ -181,7 +185,7 @@ function AppRoute() {
     );
   }
   if (appRoute.kind === "host") {
-    return <SiteAccessGate surface="host" />;
+    return hostAvailable ? <SiteAccessGate surface="host" /> : <HostNeedsApp />;
   }
   if (appRoute.kind === "join") {
     return <SiteAccessGate surface="join" />;
@@ -283,9 +287,14 @@ function SiteAccessGate({
   const [submitting, setSubmitting] = useState(false);
 
   function loadAccess(password?: string) {
+    // Deployment facts degrade to their safe defaults; only site access decides
+    // whether this page can open at all.
+    const capabilities = surface === "host"
+      ? getRuntimeCapabilities().catch(() => null)
+      : Promise.resolve(null);
     return Promise.all([
       password ? authenticateSiteAccess(password) : getSiteAccess(),
-      surface === "host" ? getRuntimeCapabilities() : Promise.resolve(null),
+      capabilities,
     ]);
   }
 
@@ -395,9 +404,6 @@ function SiteAccessGate({
     }
     return (
       <HostPage
-        roomInteractionsAvailable={capabilities?.roomInteractions === true}
-        roomReactionIds={capabilities?.roomReactionIds}
-        hostRoomSessionAvailable={capabilities?.hostRoomSession === true}
         launchedByClient={launchedByClient}
         sfuAvailable={capabilities?.sfu === true}
         sfuOnly={capabilities?.sfuOnly === true}

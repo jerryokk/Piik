@@ -1,6 +1,6 @@
 import { Children, isValidElement, type ComponentProps, type MouseEvent, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { Btn, Chip, SwitchItem } from "../src/client/components/living/primitives";
+import { Btn, Chip, SwitchItem } from "../src/client/ui/components/shell/primitives";
 
 vi.mock("react", async importOriginal => ({
   ...await importOriginal<typeof import("react")>(),

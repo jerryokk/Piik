@@ -51,7 +51,7 @@ interface HostProvisionalChildEvents {
   onPreparedChildConnected?: (revision: number, connectionId: string) => boolean;
 }
 
-export type HostPreparedChildActivation =
+type HostPreparedChildActivation =
   | { kind: "ordinary" }
   | { kind: "promote"; peerId: string; peer: HostMediaPeer };
 
@@ -213,11 +213,6 @@ export class HostProvisionalChild {
 
   setPaused(paused: boolean): void {
     this.livePeer()?.setPaused(paused);
-  }
-
-  failBrowserStream(): void {
-    const peer = this.livePeer();
-    if (peer instanceof HostPeer) this.fail(peer);
   }
 
   async replaceStream(stream: MediaStream): Promise<boolean> {

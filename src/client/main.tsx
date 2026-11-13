@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-import { StartupFailure } from "./components/living/StartupFailure";
+import { StartupFailure } from "./ui/components/shell/StartupFailure";
 import "./styles.css";
 
 async function main() {

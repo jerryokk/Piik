@@ -24,9 +24,9 @@ function fixture(role: "host" | "viewer" = "host") {
   const events = { onMessage: vi.fn(), onStatus: vi.fn(), onAccessRequired: vi.fn(), onTerminated: vi.fn() };
   const identity = { roomId: "9527", clientId: "test_client_12345678" };
   const signal = new SignalingClient(role === "host"
-    ? { ...identity, role, token: "h".repeat(43), roomSession: true,
+    ? { ...identity, role, token: "h".repeat(43),
       shareGeneration: "share_generation_12345678", routePolicy: DEFAULT_ROUTE_POLICY }
-    : { ...identity, role }, events, Date.now, { roomInteractions: true });
+    : { ...identity, role }, events, Date.now);
   signal.start();
   sockets[0]!.dispatchEvent(new Event("open"));
   const reject = (code = "AUTH_REQUIRED") => {
@@ -38,23 +38,6 @@ function fixture(role: "host" | "viewer" = "host") {
 }
 
 describe("room authentication and site admission", () => {
-  it.each(["host", "viewer"] as const)("replays %s capacity settings with their backend capability", async role => {
-    const { signal, sockets } = fixture(role);
-    const wire = JSON.parse(readFileSync(new URL("./fixtures/wire-samples.json", import.meta.url), "utf8"));
-    const authenticated = JSON.parse(wire.serverMessages.find(
-      (sample: { name: string }) => sample.name === `authenticated-${role}-minimal`).json);
-    expect(signal.setRelayVolunteer(true, role === "host" ? 8 : 0, 20)).toBe(true);
-    sockets[0]!.receive(authenticated);
-    const requested = { type: "set-relay-volunteer", enabled: true, capacity: role === "host" ? 8 : 0,
-      settings: true, physicalCapacity: 20 };
-    expect(sockets[0]!.send).toHaveBeenCalledWith(JSON.stringify(requested));
-    sockets[0]!.dispatchEvent(Object.assign(new Event("close"), { code: 1006 }));
-    await vi.advanceTimersByTimeAsync(800);
-    sockets.at(-1)!.dispatchEvent(new Event("open"));
-    sockets.at(-1)!.receive(authenticated);
-    expect(sockets.at(-1)!.send).toHaveBeenCalledWith(JSON.stringify(requested));
-    signal.stop();
-  });
   it.each([3, 8, 20])("replays this page's relay limit %s after its ordinary capacity report", async (capacity) => {
     const { signal, sockets, events } = fixture("viewer");
     const wire = JSON.parse(readFileSync(new URL("./fixtures/wire-samples.json", import.meta.url), "utf8"));
@@ -93,7 +76,7 @@ describe("room authentication and site admission", () => {
     expect(signal.relayVolunteerRequest).toBeNull();
   });
 
-  it("publishes collaboration only after capability discovery and clears it across shares", () => {
+  it("publishes collaboration on the authenticated share and clears it across shares", () => {
     const wire = JSON.parse(readFileSync(new URL("./fixtures/wire-samples.json", import.meta.url), "utf8"));
     const auth = (role: string) => JSON.parse(wire.serverMessages.find(
       (sample: { name: string }) => sample.name === `authenticated-${role}-minimal`).json);
@@ -102,8 +85,6 @@ describe("room authentication and site admission", () => {
     const grants = [{ endpointId: "1".repeat(32) }];
     host.sockets[0]!.receive(authenticated);
     host.signal.setCoPlayGrants(grants);
-    expect(host.sockets[0]!.send.mock.calls.some(([raw]) => JSON.parse(raw).type === "set-co-play-presence")).toBe(false);
-    host.signal.enableCoPlayPresence();
     expect(host.sockets[0]!.send).toHaveBeenCalledWith(JSON.stringify({ type: "set-co-play-presence", shareGeneration: authenticated.shareGeneration, grants }));
     host.signal.stopSharing(authenticated.shareGeneration);
     host.signal.startSharing("next_coplay_generation", authenticated.qualitySettings, DEFAULT_ROUTE_POLICY);
@@ -112,35 +93,15 @@ describe("room authentication and site admission", () => {
       routeAssignment: authenticated.routeAssignment, qualitySettings: authenticated.qualitySettings, paused: false });
     expect(host.sockets[0]!.send).toHaveBeenLastCalledWith(JSON.stringify({ type: "set-co-play-presence", shareGeneration: "next_coplay_generation", grants: [] }));
     host.signal.stop();
-    const viewer = fixture("viewer");
-    viewer.sockets[0]!.receive(auth("viewer"));
-    viewer.signal.enableCoPlayPresence();
-    expect(viewer.sockets[0]!.send).toHaveBeenCalledWith(JSON.stringify({ type: "subscribe-co-play-presence" }));
-    viewer.signal.stop();
   });
 
-  it("opts into audio presence after discovery and replays subscriptions and Host intent on reconnect", async () => {
+  it("replays Host audio intent on reconnect", async () => {
     const wire = JSON.parse(readFileSync(new URL("./fixtures/wire-samples.json", import.meta.url), "utf8"));
     const auth = (role: string) => JSON.parse(wire.serverMessages.find(
       (sample: { name: string }) => sample.name === `authenticated-${role}-minimal`).json);
-    const viewer = fixture("viewer");
-    viewer.sockets[0]!.receive(auth("viewer"));
-    expect(viewer.sockets[0]!.send.mock.calls.some(([raw]) => JSON.parse(raw).type === "subscribe-audio-presence")).toBe(false);
-    viewer.signal.enableAudioPresence();
-    expect(viewer.sockets[0]!.send).toHaveBeenCalledWith(JSON.stringify({ type: "subscribe-audio-presence" }));
-    viewer.sockets[0]!.dispatchEvent(Object.assign(new Event("close"), { code: 1006 }));
-    await vi.advanceTimersByTimeAsync(800);
-    viewer.sockets[1]!.dispatchEvent(new Event("open"));
-    viewer.sockets[1]!.receive(auth("viewer"));
-    expect(viewer.sockets[1]!.send).toHaveBeenCalledWith(JSON.stringify({ type: "subscribe-audio-presence" }));
-    viewer.signal.stop();
-
     const host = fixture();
-    host.signal.setAudioAvailable(false);
     const authenticated = { ...auth("host"), shareGeneration: "share_generation_12345678" };
     host.sockets[0]!.receive(authenticated);
-    expect(host.sockets[0]!.send.mock.calls.some(([raw]) => JSON.parse(raw).type === "set-audio-presence")).toBe(false);
-    host.signal.enableAudioPresence();
     host.signal.setAudioAvailable(true);
     const intent = { type: "set-audio-presence", shareGeneration: authenticated.shareGeneration, available: true };
     expect(host.sockets[0]!.send).toHaveBeenLastCalledWith(JSON.stringify(intent));
@@ -162,25 +123,21 @@ describe("room authentication and site admission", () => {
     host.signal.stop();
   });
 
-  it("restores Viewer route preference after discovery without replacing personal intent with a rejected effective choice", async () => {
+  it("sends Viewer route preference without a discovery gate and replays it on reconnect", async () => {
     const { signal, sockets, events } = fixture("viewer");
     const wire = JSON.parse(readFileSync(new URL("./fixtures/wire-samples.json", import.meta.url), "utf8"));
     const authenticated = JSON.parse(wire.serverMessages.find(
       (sample: { name: string }) => sample.name === "authenticated-viewer-minimal").json);
-    expect(JSON.parse(sockets[0]!.send.mock.calls[0]![0])).not.toHaveProperty("routePreference");
-    expect(signal.setViewerRoutePreference("sfu")).toBe(false);
-    // Capability discovery finishes after authenticate went onto the wire.
-    signal.enableViewerRouteSelection("sfu");
     sockets[0]!.receive(authenticated);
-    expect(sockets[0]!.send).toHaveBeenCalledWith(JSON.stringify({ type: "set-viewer-route-preference", preference: "sfu" }));
-    expect(signal.setViewerRoutePreference("p2p")).toBe(true);
-    sockets[0]!.receive({ type: "viewer-route-preference", preference: "p2p", accepted: true });
     expect(signal.setViewerRoutePreference("sfu")).toBe(true);
+    expect(sockets[0]!.send).toHaveBeenLastCalledWith(JSON.stringify({ type: "set-viewer-route-preference", preference: "sfu" }));
+    sockets[0]!.receive({ type: "viewer-route-preference", preference: "p2p", accepted: true });
+    expect(signal.setViewerRoutePreference("p2p")).toBe(true);
     sockets[0]!.receive({ type: "viewer-route-preference", preference: "p2p", accepted: false });
     sockets[0]!.dispatchEvent(Object.assign(new Event("close"), { code: 1006 }));
     await vi.advanceTimersByTimeAsync(800);
     sockets[1]!.dispatchEvent(new Event("open"));
-    expect(JSON.parse(sockets[1]!.send.mock.calls[0]![0])).toMatchObject({ type: "authenticate", routePreference: "sfu" });
+    expect(JSON.parse(sockets[1]!.send.mock.calls[0]![0])).toMatchObject({ type: "authenticate", routePreference: "p2p" });
     expect(events.onTerminated).not.toHaveBeenCalled();
     signal.stop();
   });
@@ -190,7 +147,6 @@ describe("room authentication and site admission", () => {
     const wire = JSON.parse(readFileSync(new URL("./fixtures/wire-samples.json", import.meta.url), "utf8"));
     const authenticated = JSON.parse(wire.serverMessages.find(
       (sample: { name: string }) => sample.name === "authenticated-viewer-minimal").json);
-    signal.enableViewerRouteSelection("auto");
     sockets[0]!.receive(authenticated);
     sockets[0]!.receive({ type: "viewer-route-preference", preference: "auto", accepted: true });
     expect(signal.setViewerRoutePreference("sfu")).toBe(true);
@@ -209,9 +165,9 @@ describe("room authentication and site admission", () => {
     signal.stop();
   });
 
-  it("skips an unknown reaction without interrupting chat, media messages or a pending send", () => {
+  it("leaves unrelated server messages to media handling without disturbing room data", () => {
     const { signal, sockets, events } = fixture();
-    const interactions = signal.interactions!;
+    const interactions = signal.interactions;
     const wire = JSON.parse(readFileSync(new URL("./fixtures/wire-samples.json", import.meta.url), "utf8"));
     const authenticated = JSON.parse(wire.serverMessages.find(
       (sample: { name: string }) => sample.name === "authenticated-host-minimal").json);
@@ -219,17 +175,10 @@ describe("room authentication and site admission", () => {
     sockets[0]!.receive({ type: "room-interactions-ready", serverTime: Date.now() });
     expect(interactions.send({ kind: "chat", text: "keep my draft" })).toBe(true);
     const before = interactions.getSnapshot();
-    const event = { type: "room-interaction", id: "future_event_1234", requestId: before.pending!.requestId,
-      occurredAt: Date.now(), sender: { peerId: authenticated.peerId, role: "host", displayName: "Friend" },
-      payload: { kind: "reaction", reaction: "future-effect" } };
-    sockets[0]!.receive(event);
-    expect(interactions.getSnapshot()).toBe(before);
-    sockets[0]!.receive({ ...event, id: "chat_event_1234", payload: { kind: "chat", text: "keep my draft" } });
-    expect(interactions.getSnapshot().messages).toHaveLength(1);
-    expect(interactions.getSnapshot().pending).toBeNull();
     const media = { type: "host-status", online: true, paused: false };
     sockets[0]!.receive(media);
     expect(events.onMessage).toHaveBeenCalledWith(media);
+    expect(interactions.getSnapshot()).toBe(before);
     expect(events.onTerminated).not.toHaveBeenCalled();
     expect(sockets[0]!.close).not.toHaveBeenCalled();
     expect(sockets).toHaveLength(1);
@@ -272,7 +221,7 @@ describe("room authentication and site admission", () => {
     expect(sockets).toHaveLength(2);
     sockets[1]!.dispatchEvent(new Event("open"));
     expect(JSON.parse(sockets[1]!.send.mock.calls[0]![0])).toMatchObject({
-      type: "authenticate", shareGeneration: "share_generation_12345678", roomSession: true,
+      type: "authenticate", shareGeneration: "share_generation_12345678",
     });
     expect(signal.interactions).toBe(interactions);
     expect(interactions!.getSnapshot().messages[0]?.payload).toEqual({ kind: "chat", text: "keep this conversation" });

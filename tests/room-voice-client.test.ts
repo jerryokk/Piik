@@ -17,7 +17,7 @@ function room(revision: number, joined = true, publication = false, enabled = tr
       ...(publication ? { publicationId: "publication" } : {}) }],
     publications: publication ? [{ id: "publication", peerId: "self" }] : [], connections: [], unavailable: [] };
 }
-function setup(listeningPresence = false, bitrate = false) {
+function setup() {
   const resume = vi.fn(async () => {});
   class Context {
     currentTime = 0;
@@ -31,15 +31,15 @@ function setup(listeningPresence = false, bitrate = false) {
   vi.stubGlobal("AudioContext", Context);
   const messages: ClientMessage[] = [];
   const send = vi.fn((message: ClientMessage) => { messages.push(message); return true; });
-  const session = new RoomVoiceSession(send, { iceServers: [] }, listeningPresence, bitrate);
+  const session = new RoomVoiceSession(send, { iceServers: [] });
   session.authenticated("self", "viewer"); session.receive(room(1));
   return { session, messages, resume, send };
 }
 
-it("reports listening only to supporting servers and restores it on subscription without muting the microphone", async () => {
+it("reports local listening without muting the microphone", async () => {
   const mic = microphone();
   vi.stubGlobal("navigator", { mediaDevices: { getUserMedia: vi.fn(async () => mic.stream) } });
-  const { session, messages, send } = setup(true, true);
+  const { session, messages, send } = setup();
   await session.startMicrophone(); session.receive(room(2, true, true));
   messages.length = 0;
   session.receive({ type: "room-voice-error", code: "not-allowed" });
@@ -55,16 +55,10 @@ it("reports listening only to supporting servers and restores it on subscription
   session.receive(room(3, false));
   expect(session.getSnapshot().deafened).toBe(true);
   session.disconnected();
-  session.deafen(false); // Changes during disconnection stay local until resubscription.
+  session.deafen(false); // Changes during disconnection stay local.
   session.deafen(true);
-  messages.length = 0;
-  session.authenticated("self", "viewer"); session.subscribeRoom();
-  expect(messages).toEqual([{ type: "subscribe-room-voice", deafened: true, bitrate: true }]);
+  expect(messages.filter(message => message.type === "room-voice-command")).toHaveLength(4);
   session.close();
-  const legacy = setup();
-  legacy.session.deafen(true); legacy.session.subscribeRoom();
-  expect(legacy.messages).toEqual([{ type: "subscribe-room-voice" }]);
-  legacy.session.close();
 });
 
 it("clears a transport failure after the committed voice transports actually connect", () => {

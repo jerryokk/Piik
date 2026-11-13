@@ -4,7 +4,7 @@ import type { ComicKind, HintKind } from "./visual-kinds";
 import type { ViewerPresentation, ViewerStage } from "../media/viewer-presentation";
 import type { SignalConnectionState } from "../types";
 import type { MediaRouteUpstream, RoomVoiceState } from "../../shared/protocol";
-import { participantConnection } from "../lib/participant-connection";
+import { participantConnection } from "../lib/room/participant-connection";
 import { qualityEvidenceUpstreamMatches, type ViewerQualityEvidencePresentation } from "../media/viewer-quality-evidence";
 import type { CopyKey, TitleFrameKey } from "./copy";
 import type { GlyphName } from "./icons";

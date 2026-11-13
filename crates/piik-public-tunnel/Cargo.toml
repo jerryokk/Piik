@@ -1,0 +1,37 @@
+[package]
+name = "piik-public-tunnel"
+description = "Supervises the packaged cloudflared Quick Tunnel for public-link rooms."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+piik-diagnostics.workspace = true
+piik-failure.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+] }
+
+[dev-dependencies]
+tracing-subscriber.workspace = true
+
+# Mirrors Go's TestMain: the test binary is also the cloudflared fixture.
+[[test]]
+name = "process"
+harness = false
+
+[lints]
+workspace = true

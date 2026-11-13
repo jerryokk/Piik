@@ -557,8 +557,40 @@ ComPtr<IMFSample> CreateCallerOutputSample(const MFT_OUTPUT_STREAM_INFO& info) {
   return sample;
 }
 
+void ValidateOutputChange(IMFMediaType* current, IMFMediaType* next) {
+  GUID subtype = {};
+  Check(next->GetGUID(MF_MT_SUBTYPE, &subtype), "mft-stream-change-subtype");
+  UINT32 width = 0, height = 0, next_width = 0, next_height = 0;
+  Check(MFGetAttributeSize(current, MF_MT_FRAME_SIZE, &width, &height),
+        "mft-stream-change-size");
+  Check(MFGetAttributeSize(next, MF_MT_FRAME_SIZE, &next_width, &next_height),
+        "mft-stream-change-size");
+  UINT32 rate = 0, scale = 0, next_rate = 0, next_scale = 0;
+  Check(MFGetAttributeRatio(current, MF_MT_FRAME_RATE, &rate, &scale),
+        "mft-stream-change-rate");
+  Check(MFGetAttributeRatio(next, MF_MT_FRAME_RATE, &next_rate, &next_scale),
+        "mft-stream-change-rate");
+  if (subtype != MFVideoFormat_H264 || next_width != width || next_height != height ||
+      scale == 0 || next_scale == 0 ||
+      static_cast<UINT64>(rate) * next_scale != static_cast<UINT64>(next_rate) * scale) {
+    Fail("mft-output-format-change", "hardware MFT changed format during the fixed run");
+  }
+}
+
+// Some hardware encoders finalize sequence headers with their first output.
+// Accept that metadata update without changing the configured media shape.
+void RenegotiateOutput(IMFTransform* transform, MFT_OUTPUT_STREAM_INFO& info) {
+  ComPtr<IMFMediaType> current;
+  Check(transform->GetOutputCurrentType(0, &current), "mft-stream-change-current");
+  ComPtr<IMFMediaType> next;
+  Check(transform->GetOutputAvailableType(0, 0, &next), "mft-stream-change-type");
+  ValidateOutputChange(current.Get(), next.Get());
+  Check(transform->SetOutputType(0, next.Get(), 0), "mft-stream-change-set");
+  Check(transform->GetOutputStreamInfo(0, &info), "mft-output-stream-info");
+}
+
 ComPtr<IMFSample> PullOutput(IMFTransform* transform,
-                             const MFT_OUTPUT_STREAM_INFO& info) {
+                             MFT_OUTPUT_STREAM_INFO& info) {
   bool transform_provides =
       (info.dwFlags & (MFT_OUTPUT_STREAM_PROVIDES_SAMPLES |
                        MFT_OUTPUT_STREAM_CAN_PROVIDE_SAMPLES)) != 0;
@@ -576,6 +608,15 @@ ComPtr<IMFSample> PullOutput(IMFTransform* transform,
   ComPtr<IMFCollection> events;
   if (output.pEvents != nullptr) {
     events.Attach(output.pEvents);
+  }
+  if (result == MF_E_TRANSFORM_STREAM_CHANGE) {
+    if (output.pSample != nullptr && output.pSample != caller_sample.Get()) {
+      output.pSample->Release();
+    }
+    // An asynchronous MFT signals the encoded sample with a later
+    // METransformHaveOutput; this event carried only the type change.
+    RenegotiateOutput(transform, info);
+    return nullptr;
   }
   Check(result, "mft-process-output");
   if ((output.dwStatus & MFT_OUTPUT_DATA_BUFFER_FORMAT_CHANGE) != 0 ||
@@ -691,6 +732,7 @@ EncodedAccessUnit LiveEncoder::Encode(
 
     ComPtr<IMFSample> output = PullOutput(selected_.transform.Get(),
                                           output_info_);
+    if (!output) continue;
     LONGLONG output_time = -1;
     Check(output->GetSampleTime(&output_time), "output-sample-time");
     if (output_time != static_cast<LONGLONG>(timestamp100ns)) {

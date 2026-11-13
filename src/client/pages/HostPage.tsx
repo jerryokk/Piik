@@ -10,9 +10,7 @@ import {
 import {
   DEFAULT_ROUTE_POLICY,
   MAX_VIEWER_PASSWORD_LENGTH,
-  MAX_VIEWERS_PER_ROOM_LIMIT,
   viewerPasswordSchema,
-  type CreateRoomResponse,
   type ClientMessage,
   type IceConfig,
   type ParticipantPresenceEntry,
@@ -22,59 +20,59 @@ import {
   type CodeEntryPolicy,
   type RoutePolicy,
 } from "../../shared/protocol";
-import { AppHeader, LedStrip } from "../components/living/Header";
-import { WelcomeLine } from "../components/living/WelcomeLine";
-import type { CouchEntry } from "../components/living/Couch";
-import { SharingSettings } from "../components/living/SharingSettings";
-import { HostShareControls } from "../components/living/HostShareControls";
-import { LiveAudioExclusion } from "../components/living/AudioExclusionSelect";
-import { RoomInteractions } from "../components/living/RoomInteractions";
-import { RoomChatOverlay, RoomChatOverlaySettings, RoomChatToggle } from "../components/living/RoomChatOverlay";
-import { PlaybackControls } from "../components/living/PlaybackControls";
-import { useTheaterMode } from "../components/living/use-theater-mode";
-import { useHostPreviewPlayback } from "../components/living/use-host-preview-playback";
-import { readRoomPreferences, saveRoomPreferences } from "../lib/room-preferences";
+import { AppHeader, LedStrip } from "../ui/components/shell/Header";
+import { WelcomeLine } from "../ui/components/shell/WelcomeLine";
+import type { CouchEntry } from "../ui/components/people/Couch";
+import { SharingSettings } from "../ui/components/share/SharingSettings";
+import { HostShareControls } from "../ui/components/share/HostShareControls";
+import { LiveAudioExclusion } from "../ui/components/share/AudioExclusionSelect";
+import { RoomInteractions } from "../ui/components/room/RoomInteractions";
+import { RoomChatOverlay, RoomChatOverlaySettings, RoomChatToggle } from "../ui/components/room/RoomChatOverlay";
+import { PlaybackControls } from "../ui/components/playback/PlaybackControls";
+import { useTheaterMode } from "../ui/components/playback/use-theater-mode";
+import { useHostPreviewPlayback } from "../ui/components/playback/use-host-preview-playback";
+import { readRoomPreferences, saveRoomPreferences } from "../lib/room/preferences";
 import type { VideoFit } from "../media/video-geometry";
-import type { RoomInteractionSession } from "../lib/room-interactions";
+import type { RoomInteractionSession } from "../lib/room/interactions";
 import type { RoomVoiceSession } from "../room-voice/session";
 import { useRoomVoiceMetrics, useRoomVoiceSnapshot } from "../room-voice/use-room-voice-state";
 import { describeVoiceConnection, voiceConnectionDetails } from "../room-voice/VoiceConnectionDetails";
 import { RoomVoicePanel, RoomVoiceControls, RoomVoiceSettings } from "../room-voice/RoomVoicePanel";
 import { HostAudio } from "../media/host-audio";
 import { browserCaptureDevices } from "../media/capture-devices";
-import { ShareMicrophoneSettings } from "../components/living/ShareMicrophoneSettings";
+import { ShareMicrophoneSettings } from "../ui/components/share/ShareMicrophoneSettings";
 import {
   CaptureSourcePicker,
   nativeAppDetected,
   type NativeSourceList,
-} from "../components/living/CaptureSourcePicker";
-import { PawnDetail } from "../components/living/PawnDetail";
+} from "../ui/components/share/CaptureSourcePicker";
+import { PawnDetail } from "../ui/components/people/PawnDetail";
 import {
   RoomAdmissionBadge,
   roomAdmission,
   RoomChip,
   RoomCodePlaceholder,
-} from "../components/living/RoomChip";
-import { RouteTree } from "../components/living/RouteTree";
+} from "../ui/components/room/RoomChip";
+import { RouteTree } from "../ui/components/people/RouteTree";
 import {
   ViewerOverview,
   type ViewerOverviewEntry,
-} from "../components/living/ViewerOverview";
-import type { ComicKind } from "../components/living/Comic";
+} from "../ui/components/people/ViewerOverview";
+import type { ComicKind } from "../ui/components/comic/Comic";
 import type { HintKind } from "../ui/visual-kinds";
-import type { ComicTone } from "../components/living/comic-presentation";
-import { Tooltip } from "../components/living/Tooltip";
-import { AudioBitrateControl, PicturePreferenceControl, PictureSettingsSummary, QualityPresets, ResolutionControl, VideoRateControls } from "../components/living/QualityPresets";
-import { RoomCodeInput, RoomCodeError } from "../components/living/RoomCodeInput";
-import { CaptureMetricCells } from "../components/living/Metrics";
-import { ConnectionDetails } from "../components/living/ConnectionDetails";
+import type { ComicTone } from "../ui/components/comic/comic-presentation";
+import { Tooltip } from "../ui/components/shell/Tooltip";
+import { AudioBitrateControl, PicturePreferenceControl, PictureSettingsSummary, QualityPresets, ResolutionControl, VideoRateControls } from "../ui/components/share/QualityPresets";
+import { RoomCodeInput, RoomCodeError } from "../ui/components/room/RoomCodeInput";
+import { CaptureMetricCells } from "../ui/components/people/Metrics";
+import { ConnectionDetails } from "../ui/components/people/ConnectionDetails";
 import {
   StageOverlay,
   StageTv,
   StaticNoise,
-} from "../components/living/Stage";
-import { StatusIndicator } from "../components/living/StatusIndicator";
-import { ShareFailureHelp } from "../components/living/ShareFailureHelp";
+} from "../ui/components/people/Stage";
+import { StatusIndicator } from "../ui/components/people/StatusIndicator";
+import { ShareFailureHelp } from "../ui/components/share/ShareFailureHelp";
 import {
   Btn,
   Cap,
@@ -85,14 +83,13 @@ import {
   Row,
   RowGroup,
   SwitchItem,
-} from "../components/living/primitives";
-import { hasPeerRouteEvidence } from "../components/status-badge-model";
+} from "../ui/components/shell/primitives";
+import { hasPeerRouteEvidence } from "./viewer/route-evidence";
 import { Glyph } from "../ui/icons";
 import { say, useCopy, type CopyKey } from "../ui/copy";
 import { resolveMediaFailure, type MediaFailure } from "../ui/media-failure";
 import {
   ApiError,
-  getRuntimeCapabilities,
   createRoom,
   replaceOwnedRoom,
   updateRoomAccess,
@@ -101,31 +98,29 @@ import {
   readCreationProfile,
   saveCreationProfile,
   type HostCreationProfile,
-} from "../lib/creation-profile";
-import { readPreferredQuality, savePreferredQuality } from "../lib/quality-preference";
-import { AppQualityPreference } from "../native/quality-preference";
-import { createOpaqueId } from "../lib/opaque-id";
+} from "../lib/preferences/creation-profile";
+import { readPreferredQuality, savePreferredQuality } from "../lib/preferences/browser-quality-preference";
+import { AppQualityPreference } from "../native/app-quality-preference";
+import { createOpaqueId } from "../lib/util/opaque-id";
 import { debugError, debugEvent, debugOperation } from "../lib/debug";
-import { observeDebugPlayback } from "../lib/debug-webrtc";
+import { observeDebugPlayback } from "../lib/debug/webrtc";
 import {
   defaultHostDisplayName,
   readDisplayName,
   readStoredDisplayName,
   saveDisplayName,
-} from "../lib/display-name";
+} from "../lib/room/display-name";
 import { useDocumentTitle } from "../ui/document-title";
 import { deriveHostStatus, deriveParticipantStatus, type HostPhase } from "../ui/media-status";
 import {
   clearHostRoom,
   getStableClientId,
   isClientActivated,
-  type HostRoomIdentity,
   type HostRoomState,
   mergeAuthenticatedHostRoom,
   readHostRoom,
   releaseHostRoom,
   readPreferredRoomId,
-  readViewerGrant,
   replaceViewerInvite,
   roomRouteForExplicitEntry,
   writeHostRoom,
@@ -133,9 +128,8 @@ import {
 } from "../lib/session";
 import {
   SignalingClient,
-  type SignalingTerminationReason,
 } from "../lib/signaling";
-import { labelParticipantSnapshot } from "../lib/viewer-presence";
+import { labelParticipantSnapshot } from "../lib/room/viewer-presence";
 import {
   applyCaptureProfile,
   captureBrowserSource,
@@ -155,7 +149,6 @@ import {
   type QualitySettings,
 } from "../media/quality";
 import { HostSfuRoute } from "../media/host-sfu-route";
-import { relayPhysicalCapacity } from "../media/relay-capability";
 import { BrowserEncodingPool } from "../media/browser-encoding-pool";
 import {
   HostProvisionalChild,
@@ -182,7 +175,6 @@ import type {
 import { HostPeer, type HostMediaPeer } from "../webrtc/host-peer";
 import { NativeClient, NativeCompatibilityError, NativeRequestError } from "../native/client";
 import { NativeClientConnection } from "../native/client-connection";
-import { activateNativePicker, androidAppIntent } from "../native/activation";
 import {
   NativeSenderPeer,
   shouldUseBrowserQualityCandidate,
@@ -196,8 +188,9 @@ import {
   nativeCaptureTargetKey,
   type NativeCapturePath,
 } from "../native/capture-selection";
-import { nativeRelayCapacity, type NativeCaptureTarget, type RemoteControlState } from "../native/wire";
-import { HostRemoteControl } from "../components/living/HostRemoteControl";
+import type { NativeCaptureTarget, RemoteControlState } from "../native/wire";
+import { HostRemoteControl } from "../ui/components/control/HostRemoteControl";
+import { InviteCodeButton } from "../ui/components/room/InviteCodeButton";
 import { InputRoute } from "../remote-control/input-route";
 import {
   MAX_ENDPOINT_MEDIA_CHILDREN,
@@ -206,7 +199,6 @@ import {
 import {
   automaticVideoCodecPreference,
   manualVideoCodecPreference,
-  supportsH264Receive,
   type BrowserVideoCodec,
   type BrowserVideoCodecMode,
   type BrowserVideoCodecPreference,
@@ -214,135 +206,15 @@ import {
 } from "../webrtc/video-codec";
 import { preferredVideoCodecForTrack } from "../webrtc/video-codec-preflight";
 import {
-  hostActionErrorKey,
   hostServerErrorKey,
   sourceSwitchNotice,
   isCapturePermissionFailure,
   hostFailureCode,
   hostFailureChecks,
   type HostAction,
-} from "./host-page-notices";
-
-type NoticeValue = (
-  | { kind: "text"; text: string }
-  | { kind: "key"; key: CopyKey; vars?: Record<string, string> }
-) & {
-  target: "television" | "operation";
-  comic: ComicKind | HintKind;
-  tone: ComicTone;
-  failureCode?: string;
-};
-
-type StatusNoticeMessage = string | { key: CopyKey; vars?: Record<string, string>; failureCode?: string };
-type SourceSwitch = { replacingVideo?: MediaStreamTrack; audioOnly?: boolean; nativePending?: boolean };
-
-type ViewerQualityEvidence = Extract<
-  ServerMessage,
-  { type: "viewer-quality-evidence" }
->;
-type HostRouteAssignment = Extract<
-  ServerMessage,
-  { type: "route-update" }
->["assignment"];
-
-interface CaptureDetails {
-  /** null = source reported no usable width/height; mapped to a localized
-   *  "unknown" (or the vis dash) at render time so language switches and vis
-   *  mode never see a baked-in string from capture time. */
-  resolution: string | null;
-  frameRate: number | null;
-  hasSourceAudio: boolean;
-}
-
-function captureDetails(stream: MediaStream | null, native = false, sourceAudio?: boolean): CaptureDetails {
-  // A Native preview is a received track, not an observation of raw capture.
-  const settings = native ? undefined : stream?.getVideoTracks()[0]?.getSettings();
-  return {
-    resolution:
-      settings?.width && settings.height
-        ? `${settings.width}x${settings.height}`
-        : null,
-    frameRate: settings?.frameRate ?? null,
-    hasSourceAudio: sourceAudio ?? stream?.getAudioTracks().some(track => track.readyState === "live") ?? false,
-  };
-}
-
-function readableError(error: unknown, action: HostAction): StatusNoticeMessage {
-  return error instanceof ApiError
-    ? error.message
-    : { key: hostActionErrorKey(error, action) };
-}
-
-function closeAbandonedRoom(room: HostRoomIdentity): void {
-  try {
-    const signal = new SignalingClient(
-      {
-        roomId: room.roomId,
-        role: "host",
-        token: room.hostToken,
-        clientId: getStableClientId("host", room.roomId),
-        shareGeneration: createOpaqueId(),
-        routePolicy: DEFAULT_ROUTE_POLICY,
-      },
-      {
-        onMessage: () => undefined,
-        onStatus: () => undefined,
-        onTerminated: () => undefined,
-        onAccessRequired: () => undefined,
-      },
-    );
-    signal.start();
-    signal.sendThenStop({ type: "abandon-room" });
-  } catch {
-    // Best effort only: cancellation must not revive the obsolete generation.
-  }
-}
-
-function hostRoomFromStored(room: HostRoomIdentity | null): HostRoomState | null {
-  if (!room) {
-    return null;
-  }
-  const viewerGrant = readViewerGrant(room.roomId);
-  const inviteUrl = new URL(room.canonicalUrl);
-  if (viewerGrant) {
-    inviteUrl.hash = `v=${viewerGrant}`;
-  }
-  return {
-    ...room,
-    codeEntryPolicy: null,
-    inviteUrl: viewerGrant ? inviteUrl.toString() : null,
-  };
-}
-
-function hostRoomFromCreated(room: CreateRoomResponse): HostRoomState {
-  replaceViewerInvite(room.roomId, room.inviteUrl);
-  const canonicalUrl = new URL(room.inviteUrl);
-  canonicalUrl.hash = "";
-  canonicalUrl.search = "";
-  return {
-    roomId: room.roomId,
-    hostToken: room.hostToken,
-    canonicalUrl: canonicalUrl.toString(),
-    codeEntryPolicy: room.codeEntryPolicy,
-    inviteUrl: room.inviteUrl,
-  };
-}
-
-function hostTerminationKey(reason: SignalingTerminationReason): CopyKey {
-  switch (reason) {
-    case "STALE_CLIENT":
-      return "host.terminated.stale";
-    case "SESSION_REPLACED":
-      return "host.terminated.session";
-    case "SIGNAL_TERMINATED":
-      return "host.terminated.signal";
-  }
-}
+} from "./host/notices";
 
 interface HostPageProps {
-  roomInteractionsAvailable?: boolean;
-  roomReactionIds?: readonly string[];
-  hostRoomSessionAvailable?: boolean;
   sfuAvailable?: boolean;
   sfuOnly?: boolean;
   natPredictionAvailable?: boolean;
@@ -362,10 +234,22 @@ type ShareSourceSelection =
       path: NativeCapturePath;
     };
 
+import {
+  captureDetails,
+  closeAbandonedRoom,
+  hostRoomFromCreated,
+  hostRoomFromStored,
+  hostTerminationKey,
+  readableError,
+  type CaptureDetails,
+  type HostRouteAssignment,
+  type NoticeValue,
+  type SourceSwitch,
+  type StatusNoticeMessage,
+  type ViewerQualityEvidence,
+} from "./host/types";
+
 export function HostPage({
-  roomInteractionsAvailable = false,
-  roomReactionIds,
-  hostRoomSessionAvailable = false,
   sfuAvailable = false,
   sfuOnly = false,
   natPredictionAvailable = false,
@@ -476,11 +360,11 @@ export function HostPage({
   }, [room]);
   useEffect(() => {
     let active = true;
-    if (hostRoomSessionAvailable && room) void roomInitializationRef.current.then(() => {
+    if (room) void roomInitializationRef.current.then(() => {
       if (active && isCurrentRoomAuthority(room)) connectRoomSignal(room).start();
     });
     return () => { active = false; };
-  }, [hostRoomSessionAvailable, room?.roomId, room?.hostToken]);
+  }, [room?.roomId, room?.hostToken]);
   const [creationProfile, setCreationProfile] =
     useState<HostCreationProfile>(readCreationProfile);
   const creationProfileRef = useRef(creationProfile);
@@ -613,12 +497,6 @@ export function HostPage({
   const hostProvisionalChildRef = useRef<HostProvisionalChild | null>(null);
   const activeHostChildPeerIdsRef = useRef<string[]>([]);
   const endpointMediaCopyCapacityRef = useRef(MAX_ENDPOINT_MEDIA_CHILDREN);
-  const ordinaryRelayCapacityRef = useRef(MAX_ENDPOINT_MEDIA_CHILDREN);
-  const requestedRelayCapacityRef = useRef<number | null>(null);
-  const hostRelayAvailableRef = useRef(false);
-  const [hostRelaySupported, setHostRelaySupported] = useState(false);
-  const [hostRelayPending, setHostRelayPending] = useState(false);
-  const [hostRelayCapacity, setHostRelayCapacity] = useState(MAX_ENDPOINT_MEDIA_CHILDREN);
   const hostPeerIdRef = useRef<string | null>(null);
   const [viewerQualityEvidenceStore] = useState(
     () => new ViewerQualityEvidenceStore(scheduleViewerQualityEvidenceRender),
@@ -962,11 +840,6 @@ export function HostPage({
     activeHostChildPeerIdsRef.current = [];
     if (!keepRoomSession) {
       endpointMediaCopyCapacityRef.current = MAX_ENDPOINT_MEDIA_CHILDREN;
-      ordinaryRelayCapacityRef.current = MAX_ENDPOINT_MEDIA_CHILDREN;
-      requestedRelayCapacityRef.current = null;
-      hostRelayAvailableRef.current = false;
-      setHostRelaySupported(false);
-      setHostRelayPending(false);
       hostPeerIdRef.current = null;
     }
     serverShareGenerationRef.current = null;
@@ -1047,7 +920,7 @@ export function HostPage({
     notifyServer = true,
     comic: ComicKind = "share-ended",
     tone: ComicTone = "off",
-    keepRoomSession = hostRoomSessionAvailable,
+    keepRoomSession = true,
   ): void {
     const generation = activeGenerationRef.current;
     if (generation === null || generationRef.current !== generation) {
@@ -1080,7 +953,7 @@ export function HostPage({
   }
 
   async function createIdleRoom(): Promise<void> {
-    if (!hostRoomSessionAvailable || roomRef.current || phase === "starting") return;
+    if (roomRef.current || phase === "starting") return;
     const mutation = beginRoomMutation("creation");
     if (!mutation) return;
     try {
@@ -1284,8 +1157,6 @@ export function HostPage({
     captured: MediaStream,
     generation: number,
   ): void {
-    // Native capture ends through share-ended; this track is only its preview.
-    if (nativeModeRef.current) return;
     const track = captured.getVideoTracks()[0];
     track?.addEventListener(
       "ended",
@@ -1300,71 +1171,6 @@ export function HostPage({
       },
       { once: true },
     );
-  }
-
-  function nativeCaptureCodec(client: NativeClient): BrowserVideoCodecMode {
-    if (nativeModeRef.current) return videoCodecRef.current.primary;
-    const mode = videoCodecModeRef.current;
-    return mode === "auto" && client.health.nativeMedia.softwareVP8 && !supportsH264Receive() ? "vp8" : mode;
-  }
-
-  function failNativePreview(bridge: NativeMediaBridge | null, generation: number, shareGeneration: string): void {
-    if (!isCurrentShare(generation, shareGeneration) || nativeMediaBridgeRef.current !== bridge) return;
-    nativeMediaBridgeRef.current = null;
-    nativeInputRoute.setUpstream(null);
-    hostProvisionalChildRef.current?.failBrowserStream();
-    for (const [peerId, peer] of peersRef.current) if (peer instanceof HostPeer) {
-      reportHostChildFailure(peerId, peer.connectionId, generation);
-      removePeer(peerId);
-    }
-    bridge?.dispose();
-    setStatusNotice({ key: "host.nativePreviewFailed", failureCode: "app/browser-media/connection" }, "route-failed", "warn");
-  }
-
-  function createNativePreview(client: NativeClient, nativeShareId: string, generation: number, shareGeneration: string): NativeMediaBridge {
-    const bridge = new NativeMediaBridge(nativeShareId, client, () => {
-      if (streamRef.current === bridge.stream) failNativePreview(bridge, generation, shareGeneration);
-    }, undefined, () => {
-      if (nativeMediaBridgeRef.current === bridge && isCurrentShare(generation, shareGeneration) && streamRef.current === bridge.stream) {
-        nativeInputRoute.setUpstream(bridge.getRemoteInput());
-      }
-    });
-    nativeMediaBridgeRef.current = bridge;
-    return bridge;
-  }
-
-  async function reconnectNativePreview(): Promise<void> {
-    const client = nativeConnection.current, nativeShareId = nativeShareGenerationRef.current;
-    const generation = activeGenerationRef.current, shareGeneration = shareGenerationRef.current;
-    if (!client || !nativeShareId || generation === null || !shareGeneration || !nativeModeRef.current ||
-      nativeMediaBridgeRef.current || sourceSwitchRef.current || qualityChangeRef.current) return;
-    let bridge: NativeMediaBridge | null = null;
-    const current = () => isCurrentShare(generation, shareGeneration) && nativeConnection.current === client &&
-      nativeShareGenerationRef.current === nativeShareId && nativeMediaBridgeRef.current === bridge && !sourceSwitchRef.current;
-    setStatusNotice({ key: "host.nativePreviewRecovering" }, "recovering", "warn");
-    try {
-      if (videoCodecRef.current.primary === "h264" && !supportsH264Receive()) throw new NativeMediaBridgeError("Native preview codec is unavailable");
-      bridge = createNativePreview(client, nativeShareId, generation, shareGeneration);
-      const preview = await bridge.start(audioAvailableRef.current);
-      if (!current()) {
-        if (nativeMediaBridgeRef.current === bridge) nativeMediaBridgeRef.current = null;
-        bridge?.dispose();
-        return;
-      }
-      if (!preview.getVideoTracks().some(track => track.readyState === "live")) throw new NativeMediaBridgeError("Native preview ended during recovery");
-      streamRef.current = preview;
-      setStream(preview);
-      setDetails(captureDetails(preview, true, nativeSourceAudioRef.current));
-      nativeInputRoute.setUpstream(bridge.getRemoteInput());
-      setNoticeValue(current => current?.kind === "key" &&
-        (current.key === "host.nativePreviewFailed" || current.key === "host.nativePreviewRecovering") ? null : current);
-    } catch {
-      if (current()) failNativePreview(bridge, generation, shareGeneration);
-      else {
-        if (nativeMediaBridgeRef.current === bridge) nativeMediaBridgeRef.current = null;
-        bridge?.dispose();
-      }
-    }
   }
 
   async function startNativeShare(
@@ -1391,6 +1197,29 @@ export function HostPage({
       await nativePreviewTailRef.current;
       if (!isCurrentShare(generation, shareGeneration)) return null;
       if (nativeConnection.current !== client) throw new NativeRequestError("unavailable", "start-share");
+      // Acquire the required Browser peer before starting capture. Pending
+      // cancellation owns this bridge, but still closes control to abort startup.
+      bridge = new NativeMediaBridge(
+        nativeShareId,
+        client,
+        () => {
+          if (
+            nativeMediaBridgeRef.current === bridge &&
+            isCurrentShare(generation, shareGeneration) &&
+            (!replacement || streamRef.current === bridge?.stream)
+          ) {
+            endSharing({ key: "native.fail.edge", failureCode: "app/browser-media/connection" }, true, "route-failed", "bad");
+          }
+        },
+        undefined,
+        () => {
+          if (nativeMediaBridgeRef.current === bridge && isCurrentShare(generation, shareGeneration) &&
+            (!replacement || nativeModeRef.current)) {
+            nativeInputRoute.setUpstream(bridge?.getRemoteInput() ?? null);
+          }
+        },
+      );
+      nativeMediaBridgeRef.current = bridge;
       nativeSourceAudioRef.current = undefined;
       if (!replacement) audioAvailableRef.current = false;
       nativeEventCleanup = client.onEvent((event) => {
@@ -1409,8 +1238,7 @@ export function HostPage({
           if (event.failed) setNoticeValue({ kind: "key", key: "host.audioInput.stopped", target: "operation", comic: "warning", tone: "warn" });
         }
         if (event.type === "share-ended") {
-          if (replacement && sourceSwitchRef.current === replacement && !nativeModeRef.current) {
-            if (nativeSourceSelectionRef.current === selection) nativeSourceSelectionRef.current = null;
+          if (replacement && streamRef.current !== bridge?.stream) {
             bridge?.dispose();
             return;
           }
@@ -1431,16 +1259,18 @@ export function HostPage({
         showCaptureBorder,
         adapterIndex: path.adapterIndex,
         encoderIndex: path.encoderIndex,
-        edgeCapacity: nativeRelayCapacity(MAX_VIEWERS_PER_ROOM_LIMIT, client.health),
+        edgeCapacity: MAX_ENDPOINT_MEDIA_CHILDREN,
         profile: qualitySettingsRef.current,
-        codec: nativeCaptureCodec(client),
-      }, target.kind === "picker" ? () => activateNativePicker(client.health.activationURL) : undefined);
+        codec: videoCodecModeRef.current,
+      });
       shareStarted = true;
       if (!isCurrentShare(generation, shareGeneration)) {
+        if (nativeMediaBridgeRef.current === bridge) nativeMediaBridgeRef.current = null;
+        bridge.dispose();
         await client.stopShare(nativeShareId).catch(() => nativeConnection.discard(client));
         return null;
       }
-      if (nativeConnection.current !== client || nativeSourceSelectionRef.current !== selection) throw new NativeRequestError("unavailable", "start-share");
+      if (nativeConnection.current !== client) throw new NativeRequestError("unavailable", "start-share");
       nativeSourceAudioRef.current ??= started.sourceAudio ?? started.audio;
       if (!replacement) audioAvailableRef.current = nativeSourceAudioRef.current || audioAvailableRef.current;
       if (!replacement) videoCodecRef.current = manualVideoCodecPreference(started.codec);
@@ -1454,19 +1284,7 @@ export function HostPage({
       } else nativeModeRef.current = true;
       if (client.health.nativeMedia.remoteInput) await client.setRemoteInputPeers(nativeShareId, remoteInputPeersRef.current);
       if (!replacement) setNativeActive(true);
-      let stream: MediaStream | null = null;
-      // The App owns capture. This Browser may be unable to receive its codec.
-      try {
-        if (started.codec === "h264" && !supportsH264Receive()) throw new NativeMediaBridgeError("Native preview codec is unavailable");
-        bridge = createNativePreview(client, nativeShareId, generation, shareGeneration);
-        stream = await bridge.start(started.audio);
-        if (!stream.getVideoTracks().some(track => track.readyState === "live")) throw new NativeMediaBridgeError("Native preview ended during startup");
-      } catch (error) {
-        debugError("native-bridge", "preview-unavailable", error);
-        if (nativeMediaBridgeRef.current === bridge) nativeMediaBridgeRef.current = null;
-        bridge?.dispose();
-        stream = null;
-      }
+      const stream = await bridge.start(started.audio);
       if (replacement) {
         if (sharingPausedRef.current) await client.setPaused(nativeShareId, true);
         if (client.health.nativeMedia.shareVolume) {
@@ -1474,20 +1292,21 @@ export function HostPage({
         }
       }
       if (!isCurrentShare(generation, shareGeneration) || (replacement && sourceSwitchRef.current !== replacement)) {
-        if (nativeShareGenerationRef.current === nativeShareId) disposeNativeShare(nativeShareId);
-        else bridge?.dispose();
+        if (nativeMediaBridgeRef.current === bridge) disposeNativeShare();
+        else bridge.dispose();
         return null;
       }
-      if (nativeConnection.current !== client || nativeSourceSelectionRef.current !== selection) throw new NativeRequestError("unavailable", "start-share");
+      if (replacement && !stream.getVideoTracks().some(track => track.readyState === "live")) {
+        throw new NativeMediaBridgeError("Native capture ended before source replacement");
+      }
       if (replacement) {
         audioAvailableRef.current = !!nativeSourceAudioRef.current;
         videoCodecRef.current = manualVideoCodecPreference(started.codec);
         nativeModeRef.current = true;
         setNativeActive(true);
         if (pendingRemoteControl) applyRemoteControl(pendingRemoteControl);
+        nativeInputRoute.setUpstream(bridge.getRemoteInput());
       }
-      if (stream && bridge) nativeInputRoute.setUpstream(bridge.getRemoteInput());
-      else if (!replacement) failNativePreview(null, generation, shareGeneration);
       return stream;
     } catch (error) {
       if (nativeSourceSelectionRef.current === selection) nativeSourceSelectionRef.current = null;
@@ -1523,7 +1342,6 @@ export function HostPage({
     } else if (nativeModeRef.current && activeGenerationRef.current !== null) {
       endSharing({ key: "native.fail.controlDisconnected", failureCode: "app/control/disconnected" }, true, "route-failed", "bad");
     }
-    updateHostRelayCapacity();
   }
 
   function connectNativeClient(signal: AbortSignal): Promise<NativeClient | null> {
@@ -1535,26 +1353,7 @@ export function HostPage({
   }
 
   function acquireNativeClient(): Promise<NativeClient | null> {
-    return nativeConnection.acquire(nativeShareCleanupRef.current).then(client => {
-      if (client && nativeConnection.current === client) updateHostRelayCapacity();
-      return client;
-    });
-  }
-
-  function updateHostRelayCapacity(capacity?: number): void {
-    if (capacity !== undefined) requestedRelayCapacityRef.current = capacity;
-    const client = nativeConnection.current;
-    const backend = client ? nativeRelayCapacity(MAX_VIEWERS_PER_ROOM_LIMIT, client.health) : MAX_VIEWERS_PER_ROOM_LIMIT;
-    const requested = requestedRelayCapacityRef.current;
-    const effective = requested ?? ordinaryRelayCapacityRef.current;
-    const enabled = requested !== null;
-    setHostRelayCapacity(effective);
-    const signal = signalRef.current;
-    if (!hostRelayAvailableRef.current || !signal) return;
-    const intent = signal.relayVolunteerRequest;
-    if (intent?.enabled === enabled && intent.capacity === effective && intent.physicalCapacity === backend) return;
-    setHostRelayPending(true);
-    if (!signal.setRelayVolunteer(enabled, effective, backend)) setHostRelayPending(false);
+    return nativeConnection.acquire(nativeShareCleanupRef.current);
   }
 
   function releaseUnusedNativeClient(): void {
@@ -1563,7 +1362,6 @@ export function HostPage({
     if (nativeSourceRequestRef.current || nativeShareGenerationRef.current || sourceSwitchRef.current ||
       (activeGenerationRef.current !== null && roomMutationRef.current !== null)) return;
     nativeConnection.release();
-    updateHostRelayCapacity();
   }
 
   function closeCaptureSourcePicker(): void {
@@ -1619,7 +1417,7 @@ export function HostPage({
         client.captureOptions(),
         client.sources(),
       ]);
-      const codec = nativeCaptureCodec(client);
+      const codec = nativeModeRef.current ? videoCodecRef.current.primary : videoCodecModeRef.current;
       const path = defaultNativeCapturePath(
         adapters,
         codec,
@@ -1665,7 +1463,7 @@ export function HostPage({
     if (nativeConnection.current !== client || !isCurrentShare(generation, shareGeneration)) return;
     const ingress = new NativeMediaIngress(shareGeneration, client, () => {
       recoverBrowserFanout(ingress);
-    }, () => qualitySettingsRef.current, nativeRelayCapacity(MAX_VIEWERS_PER_ROOM_LIMIT, client.health));
+    }, () => qualitySettingsRef.current);
     nativeMediaIngressRef.current = ingress;
     nativeShareGenerationRef.current = shareGeneration;
     try {
@@ -1899,7 +1697,7 @@ export function HostPage({
     const activeStream = streamRef.current;
     if (
       generation === null ||
-      (!activeStream && !nativeModeRef.current) ||
+      !activeStream ||
       !isCurrentGeneration(generation) ||
       sourceSwitchRef.current
     ) {
@@ -1941,7 +1739,7 @@ export function HostPage({
         );
       }
       const appliedProfile = nextProfile;
-      if (!nativeUpdate && captureChanged && activeStream) {
+      if (!nativeUpdate && captureChanged) {
         await applyCaptureProfile(activeStream, nextProfile);
       }
       if (
@@ -1958,7 +1756,7 @@ export function HostPage({
       outcome = "applied";
       if (nativeUpdate) {
         setDetails(captureDetails(activeStream, true, nativeSourceAudioRef.current));
-      } else if (captureChanged && activeStream) {
+      } else if (captureChanged) {
         setDetails(captureDetails(hostAudioRef.current?.sourceStream ?? activeStream));
       }
       signalRef.current?.setHostQualitySettings(appliedProfile);
@@ -2241,8 +2039,6 @@ export function HostPage({
     if (
       !isCurrentGeneration(generation) ||
       (!stream && !nativeModeRef.current) ||
-      (nativeModeRef.current && shouldUseBrowserQualityCandidate(peersRef.current.get(candidate.childPeerId), candidate) &&
-        nativeMediaBridgeRef.current?.stream !== stream) ||
       !iceConfig ||
       !signal
     ) {
@@ -2717,15 +2513,11 @@ export function HostPage({
 
   function connectRoomSignal(activeRoom: HostRoomState, shareGeneration?: string, allowReplacement = true): SignalingClient {
     const previous = signalRef.current;
-    if (hostRoomSessionAvailable && previous?.ownsHostRoom(activeRoom.roomId, activeRoom.hostToken)) {
+    if (previous?.ownsHostRoom(activeRoom.roomId, activeRoom.hostToken)) {
       previous.setAudioAvailable(audioAvailableRef.current);
       return previous;
     }
     previous?.stop();
-    hostRelayAvailableRef.current = false;
-    requestedRelayCapacityRef.current = null;
-    setHostRelaySupported(false);
-    setHostRelayPending(false);
     let authenticated = false;
     const hostClientId = getStableClientId("host", activeRoom.roomId);
     hostClientIdRef.current = hostClientId;
@@ -2741,11 +2533,10 @@ export function HostPage({
         role: "host",
         token: activeRoom.hostToken,
         clientId: hostClientId,
-        ...(hostRoomSessionAvailable ? { roomSession: true as const, roomOnly: true as const } : { shareGeneration }),
+        ...(shareGeneration ? { shareGeneration } : {}),
         sharingPaused: false,
         qualitySettings: qualitySettingsRef.current,
         routePolicy: routePolicyRef.current,
-        viewerPresence: true,
         displayName: initialDisplayName,
       },
       {
@@ -2769,17 +2560,6 @@ export function HostPage({
         },
         onMessage: (message) => {
           if (signalRef.current !== signal || !isCurrentRoomAuthority(activeRoom)) return;
-          if (message.type === "relay-volunteer") {
-            if (message.roomCapacity === undefined) return;
-            ordinaryRelayCapacityRef.current = message.roomCapacity;
-            const intent = signal.relayVolunteerRequest;
-            setHostRelayPending(intent !== null && intent.enabled && intent.capacity !== message.roomCapacity);
-            setHostRelayCapacity(intent?.enabled ? intent.capacity : message.roomCapacity);
-            // Lowering policy hands children back to the controller. Keep room
-            // for their old connections until its assignments retire them.
-            endpointMediaCopyCapacityRef.current = Math.max(endpointMediaCopyCapacityRef.current, relayPhysicalCapacity(message.capacity));
-            return;
-          }
           if (message.type === "remote-input-peers") {
             remoteInputPeersRef.current = message.peers;
             const client = nativeConnection.current, shareId = nativeShareGenerationRef.current;
@@ -2839,10 +2619,7 @@ export function HostPage({
             authenticated = true;
             iceConfigRef.current = message.iceConfig;
             hostPeerIdRef.current = message.peerId;
-            if (!hostRelayAvailableRef.current) ordinaryRelayCapacityRef.current = message.endpointMediaCopyCapacity;
-            endpointMediaCopyCapacityRef.current = Math.max(endpointMediaCopyCapacityRef.current, relayPhysicalCapacity(message.endpointMediaCopyCapacity));
-            setHostRelayPending(signal.relayVolunteerRequest !== null);
-            updateHostRelayCapacity();
+            endpointMediaCopyCapacityRef.current = message.endpointMediaCopyCapacity;
             serverShareGenerationRef.current = message.shareGeneration;
             const profile = {
               codeEntryPolicy: message.codeEntryPolicy,
@@ -2904,25 +2681,13 @@ export function HostPage({
           );
         },
       },
-      undefined,
-      { roomInteractions: roomInteractionsAvailable, roomReactionIds },
     );
     signalRef.current = signal;
     signal.setAudioAvailable(audioAvailableRef.current);
     remoteInputPeersRef.current = [];
-    void getRuntimeCapabilities().then(capabilities => {
-      if (signalRef.current === signal) {
-        hostRelayAvailableRef.current = capabilities.roomRelayCapacity === true && !capabilities.sfuOnly;
-        setHostRelaySupported(hostRelayAvailableRef.current);
-        updateHostRelayCapacity();
-      }
-      if (signalRef.current === signal && capabilities.roomInteractions) setInteractionSession(signal.enableRoomInteractions(capabilities.roomReactionIds));
-      if (signalRef.current === signal && capabilities.roomVoice) setRoomVoiceSession(signal.enableRoomVoice({ listeningPresence: capabilities.roomVoiceListeningPresence, bitrate: capabilities.roomVoiceBitrate }));
-      if (signalRef.current === signal && capabilities.remoteInput) signal.enableRemoteInput();
-      if (signalRef.current === signal && capabilities.coPlayPresence) signal.enableCoPlayPresence();
-      if (signalRef.current === signal && capabilities.audioPresence) signal.enableAudioPresence();
-    }).catch(() => { /* Optional input does not block sharing. */ });
+    signal.enableRemoteInput();
     setInteractionSession(signal.interactions);
+    setRoomVoiceSession(signal.roomVoice);
     return signal;
   }
 
@@ -2946,7 +2711,8 @@ export function HostPage({
       roomRef.current = replacement;
       setRoom(replacement);
       const signal = connectRoomSignal(replacement, shareGeneration, false);
-      if (hostRoomSessionAvailable) signal.startSharing(shareGeneration, qualitySettingsRef.current, routePolicyRef.current);
+      // A share generation claims a fresh publication on the persistent session.
+      signal.startSharing(shareGeneration, qualitySettingsRef.current, routePolicyRef.current);
       signal.start();
     } catch (error) {
       if (!isCurrentShare(generation, shareGeneration)) return;
@@ -3060,10 +2826,7 @@ export function HostPage({
       if (nativeStarted) disposeNativeShare(shareGeneration);
       return;
     }
-    if (captured || nativeModeRef.current) {
-      setResolvedVideoCodec(videoCodecRef.current.primary);
-      if (!captured) setDetails(captureDetails(null, true, nativeSourceAudioRef.current));
-    }
+    if (captured) setResolvedVideoCodec(videoCodecRef.current.primary);
 
     let createdRoom: HostRoomState | null = null;
     let claimedRoom = false;
@@ -3099,7 +2862,8 @@ export function HostPage({
         claimedRoom = true;
       }
       const signal = connectRoomSignal(createdRoom, shareGeneration);
-      if (hostRoomSessionAvailable) signal.startSharing(shareGeneration, qualitySettingsRef.current, routePolicyRef.current);
+      // A share generation claims a fresh publication on the persistent session.
+      signal.startSharing(shareGeneration, qualitySettingsRef.current, routePolicyRef.current);
 
       signal.start();
     } catch (error) {
@@ -3250,8 +3014,9 @@ export function HostPage({
       const ingress = nativeMediaIngressRef.current;
       if (ingress) recoverBrowserFanout(ingress);
       const captured = await startNativeShare(generation, shareGeneration, selection, token);
+      if (!captured) return;
       if (!isCurrentShare(generation, shareGeneration) || sourceSwitchRef.current !== token) {
-        if (nativeSourceSelectionRef.current === selection) disposeNativeShare();
+        if (nativeMediaBridgeRef.current?.stream === captured) disposeNativeShare();
         return;
       }
       const previousAudio = hostAudioRef.current;
@@ -3262,7 +3027,6 @@ export function HostPage({
       signalRef.current?.setAudioAvailable(audioAvailableRef.current);
       setResolvedVideoCodec(videoCodecRef.current.primary);
       await replaceBrowserStream(captured, generation, token, [], true);
-      if (!captured) failNativePreview(null, generation, shareGeneration);
     } catch (error) {
       if (isCurrentShare(generation, shareGeneration) && sourceSwitchRef.current === token) {
         setNoticeError(error, "source");
@@ -3417,24 +3181,30 @@ export function HostPage({
       failureCode: hostFailureCode(error, action, "camera") });
   }
 
-  async function replaceBrowserStream(captured: MediaStream | null, generation: number, token: object, reboundPeerIds: string[] = [], rebuildTransport = false): Promise<void> {
+  async function replaceBrowserStream(captured: MediaStream, generation: number, token: object, reboundPeerIds: string[] = [], rebuildTransport = false): Promise<void> {
     // The caller retires its operation; this function owns only stream resources.
     const previousStream = streamRef.current;
+    if (!previousStream) {
+      captured.getTracks().forEach((track) => track.stop());
+      setStatusNotice({ key: "host.shareEnded" }, "share-ended", "off");
+      return;
+    }
+
     retiringStreamRef.current = previousStream;
-    const videoChanged = captured?.getVideoTracks()[0] !== previousStream?.getVideoTracks()[0];
+    const videoChanged = captured.getVideoTracks()[0] !== previousStream.getVideoTracks()[0];
     // HostAudio retires source audio; this operation retires replaced video.
-    const retirePrevious = () => previousStream?.getVideoTracks().forEach((track) => {
-      if (!captured?.getTracks().includes(track)) track.stop();
+    const retirePrevious = () => previousStream.getVideoTracks().forEach((track) => {
+      if (!captured.getTracks().includes(track)) track.stop();
     });
     if (videoChanged) invalidateSenderQualityEvidence();
     if (videoChanged && routePolicyRef.current.topologyOptimization) {
       signalRef.current?.send({ type: "reset-sender-quality" });
     }
-    if (captured) setMediaPaused(captured, sharingPausedRef.current);
+    setMediaPaused(captured, sharingPausedRef.current);
     streamRef.current = captured;
     setStream(captured);
     setDetails(captureDetails(hostAudioRef.current?.sourceStream ?? captured, nativeModeRef.current, nativeSourceAudioRef.current));
-    if (videoChanged && captured) watchCaptureEnd(captured, generation);
+    if (videoChanged) watchCaptureEnd(captured, generation);
 
     try {
       if (rebuildTransport) {
@@ -3446,14 +3216,14 @@ export function HostPage({
         }
       }
       const ingress = nativeMediaIngressRef.current;
-      if (ingress && captured) {
+      if (ingress) {
         try {
           if (ingress.hasAudio !== (captured.getAudioTracks().length > 0)) {
             const client = nativeConnection.current;
             if (!client) throw new Error("Native media ingress is unavailable");
             const replacement = new NativeMediaIngress(ingress.shareId, client, () => {
               recoverBrowserFanout(replacement);
-            }, () => qualitySettingsRef.current, nativeRelayCapacity(MAX_VIEWERS_PER_ROOM_LIMIT, client.health));
+            }, () => qualitySettingsRef.current);
             try {
               await replacement.start(captured, qualitySettingsRef.current);
               if (!isCurrentGeneration(generation) || nativeMediaIngressRef.current !== ingress) {
@@ -3481,7 +3251,7 @@ export function HostPage({
         }
       }
       if (!isCurrentGeneration(generation) || sourceSwitchRef.current !== token) {
-        captured?.getTracks().forEach((track) => track.stop());
+        captured.getTracks().forEach((track) => track.stop());
         return;
       }
       const activeSfuRoute = hostSfuRouteRef.current;
@@ -3493,14 +3263,14 @@ export function HostPage({
               return {
                 peerId,
                 peer,
-                replaced: captured ? await peer.replaceStream(captured) : false,
+                replaced: await peer.replaceStream(captured),
               };
             } catch {
               return { peerId, peer, replaced: false };
             }
           }),
         ),
-        captured ? provisional?.replaceStream(captured) ?? Promise.resolve(true) : Promise.resolve(true),
+        provisional?.replaceStream(captured) ?? Promise.resolve(true),
         activeSfuRoute?.replaceStream(captured, rebuildTransport) ?? Promise.resolve(true),
       ]);
 
@@ -3508,7 +3278,7 @@ export function HostPage({
         !isCurrentGeneration(generation) ||
         sourceSwitchRef.current !== token
       ) {
-        captured?.getTracks().forEach((track) => track.stop());
+        captured.getTracks().forEach((track) => track.stop());
         return;
       }
 
@@ -3933,15 +3703,6 @@ export function HostPage({
     ? nativeConnection.current?.health.nativeMedia.maxAudioBitrate ?? MAX_AUDIO_SEND_BITRATE
     : MAX_AUDIO_SEND_BITRATE);
   const videoLimits = videoCaptureLimits(nativeActive ? nativeConnection.current?.health.nativeMedia : undefined);
-  const nativePermissionIntent = androidAppIntent(nativeConnection.current?.health.activationURL);
-  const confirmNativeCapture = Boolean(nativePermissionIntent && (
-    (phase === "starting" && !nativeActive && nativeSourceSelectionRef.current) ||
-    sourceSwitchState?.nativePending
-  ));
-  function confirmNativePermission(): void {
-    const intent = androidAppIntent(nativeConnection.current?.health.activationURL);
-    if (intent && activeGenerationRef.current !== null) window.location.assign(intent);
-  }
 
   return (
     <div className="lr-app">
@@ -3982,19 +3743,16 @@ export function HostPage({
               </span>
             </>}
           >
-            {stream || nativeActive ? (
+            {stream ? (
               <video ref={videoRef} muted playsInline tabIndex={0}
                 style={{ objectFit: pictureFit }} aria-label={t("host.stageAria")} />
             ) : null}
-            {(stream || nativeActive) && <PlaybackControls videoRef={videoRef} stream={stream}
+            {stream && <PlaybackControls videoRef={videoRef} stream={stream}
               sharingAudio={{ ...shareVolume, available: nativeActive
                 ? !!nativeConnection.current?.health.nativeMedia.shareVolume : hostAudioRef.current?.commentaryAvailable === true,
                 onChange: changeShareVolume }}
               audioAvailable={audioAvailableRef.current}
-              canPlay={!!stream && phase === "live" && !nativeSources && !sharingPaused && !previewPlayback.suspended &&
-                (!nativeActive || nativeMediaBridgeRef.current?.stream === stream)}
-              onReconnect={nativeActive ? () => { void reconnectNativePreview(); } : undefined}
-              reconnectAvailable={nativeActive && !nativeMediaBridgeRef.current && !switchingSource && !changingQuality}
+              canPlay={phase === "live" && !nativeSources && !sharingPaused && !previewPlayback.suspended}
               theaterMode={theaterMode} onToggleTheater={() => setTheaterMode(value => !value)}
               onPlay={previewPlayback.onPlay}
               onPause={previewPlayback.onPause}
@@ -4103,22 +3861,20 @@ export function HostPage({
                 painted after it would cover and swallow its controls. */}
             {nativeSources ? null : switchingSource && !sourceSwitchRef.current?.audioOnly ? (
               <StageOverlay
-                icon={confirmNativeCapture ? "window" : "refresh"}
+                icon="refresh"
                 comic="source-switching"
                 tone="busy"
                 waiting
                 dim
-                message={t(confirmNativeCapture ? "native.confirmInApp" : "host.switchingSource")}
-                onActivate={confirmNativeCapture ? confirmNativePermission : undefined}
+                message={t("host.switchingSource")}
               />
             ) : sharingPaused ? (
               <StageOverlay icon="pause" dim comic="host-paused" tone={hostStatus.activity.tone} message={t("host.pauseNotice")} />
             ) : phase === "starting" ? (
               <>
                 <StaticNoise />
-                <StageOverlay icon={confirmNativeCapture ? "window" : "cast"} comic="source-starting" tone="busy" waiting
-                  message={t(confirmNativeCapture ? "native.confirmInApp" : "host.starting")}
-                  onActivate={confirmNativeCapture ? confirmNativePermission : undefined} />
+                <StageOverlay icon="cast" comic="source-starting" tone="busy" waiting
+                  message={t("host.starting")} />
               </>
             ) : stream && previewPlayback.suspended ? (
               <StageOverlay
@@ -4144,8 +3900,7 @@ export function HostPage({
             </> : null}
             remote={nativeActive && remoteControlState && <HostRemoteControl
               mode={remoteControlState.mode}
-              platform={remoteControlState.platform}
-              gamepad={remoteControlState.gamepad}
+              gamepadDriver={remoteControlState.gamepadDriver}
               simultaneous={remoteControlState.simultaneous}
               onSimultaneous={remoteControlState.simultaneous !== undefined ? async enabled => {
                 const client = nativeConnection.current;
@@ -4266,9 +4021,6 @@ export function HostPage({
               </div>
             </>}
             audio={<>
-              {nativePermissionIntent && nativeActive && ((commentaryBusy && !commentary) || (sourceSwitchState?.nativePending && sourceSwitchState.audioOnly)) &&
-                <Btn icon="window" title="native.confirmInApp" cap="native.confirmInApp" tone="primary"
-                  hint="hint-client-site" onClick={confirmNativePermission} />}
               {phase === "live" && (!nativeActive || nativeConnection.current?.health.nativeMedia.microphone) ?
                   <ShareMicrophoneSettings enabled={commentary}
                     browser={!nativeActive}
@@ -4298,17 +4050,6 @@ export function HostPage({
                 max={audioBitrateCeiling} disabled={phase === "starting" || switchingSource}
                 onChange={changeMaxAudioBitrate} />
             </>}
-            sendingCapacity={hostRelaySupported ? {
-              capacity: hostRelayCapacity,
-              minimum: 1,
-              maximum: MAX_VIEWERS_PER_ROOM_LIMIT,
-              available: true,
-              enabled: true,
-              pending: hostRelayPending,
-              disabled: signalStatus !== "connected" || hostRelayPending,
-              onChange: () => {},
-              onCapacityChange: capacity => updateHostRelayCapacity(capacity),
-            } : undefined}
             connection={
               <div className="lr-row-group" role="group" aria-label={t("host.advanced.route")}>
                 {sfuOnly ? <SwitchItem checked disabled locked
@@ -4404,7 +4145,7 @@ export function HostPage({
                   />
                 ) : null}
               </> : <RoomCodePlaceholder
-                onCreate={hostRoomSessionAvailable ? () => void createIdleRoom() : undefined}
+                onCreate={() => void createIdleRoom()}
                 disabled={roomMutating || phase === "starting"}
                 busy={roomMutation === "creation"}
               />}
@@ -4462,7 +4203,6 @@ export function HostPage({
                     <Btn
                       icon="pencil"
                       cap="common.edit"
-                      collapsibleCaption
                       title="host.nameEdit"
                       hint="hint-rename"
                       onClick={() => {
@@ -4550,6 +4290,11 @@ export function HostPage({
                   hint="hint-revoke-invite"
                   disabled={!room.inviteUrl || roomMutating}
                   onClick={() => void changeViewerGrant("revoke")}
+                />
+                <InviteCodeButton
+                  link={roomLinkBlocked ? null : roomLink ?? null}
+                  panelId="host-invite-code"
+                  disabled={roomMutating}
                 />
               </RowGroup>
               <div className="lr-invite-field">

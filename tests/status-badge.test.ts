@@ -4,7 +4,7 @@ import {
   hasPeerRouteEvidence,
   viewerReconnectRoute,
   viewerRouteEvidence,
-} from "../src/client/components/status-badge-model.ts";
+} from "../src/client/pages/viewer/route-evidence.ts";
 import { EMPTY_METRICS, type PeerSnapshot } from "../src/client/types.ts";
 
 const peerSnapshot: PeerSnapshot = {

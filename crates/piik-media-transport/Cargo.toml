@@ -1,0 +1,30 @@
+[package]
+name = "piik-media-transport"
+description = "str0m connection wrapper, shard driver, UDP sockets, SDP policy and ICE candidate JSON."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+bytecodec.workspace = true
+if-addrs.workspace = true
+piik-encoded.workspace = true
+piik-input-route.workspace = true
+rand.workspace = true
+serde.workspace = true
+socket2.workspace = true
+str0m.workspace = true
+stun_codec.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+windows = { workspace = true, features = ["Win32_Media", "Win32_Networking_WinSock", "Win32_System_IO"] }
+
+[dev-dependencies]
+piik-stun.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

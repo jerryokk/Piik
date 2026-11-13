@@ -1,7 +1,7 @@
 import type { SfuSignalMessage } from "../../shared/protocol";
 import { RemoteInputChannel } from "../webrtc/remote-input-channel";
 import type { ConnectionMetrics } from "../types";
-import { debugRtcFailure, debugRtcStats } from "../lib/debug-webrtc";
+import { debugRtcFailure, debugRtcStats } from "../lib/debug/webrtc";
 import {
   collectConnectionMetricsFromReport,
   createStatsAccumulator,

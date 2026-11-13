@@ -1,9 +1,9 @@
 export const DEFAULT_ENDPOINT_MEDIA_COPY_CAPACITY = 2;
 export const MAX_ENDPOINT_MEDIA_COPY_CAPACITY = 3;
 
-export type EndpointMediaCopyPhase = "steady" | "transition";
+type EndpointMediaCopyPhase = "steady" | "transition";
 
-export interface EndpointMediaCopySnapshot {
+interface EndpointMediaCopySnapshot {
   childPeerIds: readonly string[];
   publicationGeneration?: string | null;
   selectedChildPeerIds?: Iterable<string>;
@@ -49,7 +49,7 @@ export function endpointMediaCopyCountFits(
   );
 }
 
-export function isEndpointMediaCopyCapacity(capacity: number): boolean {
+function isEndpointMediaCopyCapacity(capacity: number): boolean {
   return (
     Number.isSafeInteger(capacity) &&
     capacity >= 1 &&

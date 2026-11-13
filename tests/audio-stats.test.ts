@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   collectConnectionMetricsFromReport,
   createStatsAccumulator,
-} from "../src/client/webrtc/stats.ts";
+} from "../src/client/webrtc/stats";
 
 function outboundReport(
   timestamp: number,

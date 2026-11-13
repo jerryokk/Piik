@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { participantColor } from "../src/client/components/living/participant-color";
+import { participantColor } from "../src/client/ui/components/people/participant-color";
 
 describe("participant identity colours", () => {
   it("keeps identity colours valid in sRGB and independent of roster order", () => {

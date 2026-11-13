@@ -1,0 +1,44 @@
+/* ---------- room layout ---------- */
+
+/* Clip horizontal decoration without creating a scrolling container. */
+.lr-app { min-height: 100dvh; display: flex; flex-direction: column; overflow-x: clip; }
+.lr-room {
+  flex: 1;
+  width: min(1180px, 100%);
+  min-width: 0;
+  margin: 0 auto;
+  --room-gutter: clamp(14px, 3.5vw, 40px);
+  padding: 8px var(--room-gutter) 64px;
+}
+.lr-scene { position: relative; min-width: 0; }
+body.lr-theater-open { overflow: hidden; }
+body.lr-theater-open .lr-top { visibility: hidden; }
+.lr-room.is-theater {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  padding: 0;
+  background: var(--stage);
+}
+.lr-room.is-theater .lr-scene { width: 100%; height: 100%; }
+.lr-room.is-theater .lr-tv {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+.lr-room.is-theater .lr-tv-screen,
+.lr-room.is-theater .lr-tv-screen.has-entry {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+.lr-room.is-theater .lr-tv-chin,
+.lr-room.is-theater .lr-couch,
+.lr-room.is-theater .lr-deck { display: none; }

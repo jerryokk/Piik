@@ -16,7 +16,7 @@ functionality, visual quality or necessary safety. Design and verify at the
 scale of the change; routine design choices within an authorized task need no
 separate design document or approval.
 Detailed criteria stay in [visual language](./docs/standards/visual-language.md)
-and [engineering](./docs/standards/engineering.md).
+and [engineering](./docs/architecture/modules.md).
 
 ## Authority And Scope
 
@@ -57,7 +57,8 @@ invocation; follow their relevant guidance without importing unrelated workflows
 ## Product Contract
 
 - Piik is private screen sharing for one Host and up to 20 authenticated
-  Viewers, with Web Host/Viewer/relay as the current product surface.
+  Viewers, with the Windows App Host and Web Viewers (including relay) as the
+  current product surface.
 - Current product truth is split by owner:
   [rooms/access](./docs/standards/rooms-access.md),
   [routing/transport](./docs/standards/routing-transport.md),
@@ -65,23 +66,27 @@ invocation; follow their relevant guidance without importing unrelated workflows
   [presentation/lifecycle](./docs/standards/presentation-lifecycle.md).
 - Media stays automatic and defaults to P2P-first; central services provide room authority,
   signaling, STUN, observability, and bounded embedded SFU/UDP fallback using
-  mature LiveKit media components under [ADR-0013](./docs/adr/0013-embedded-node-local-media.md). Route
-  changes must preserve the single-graph, single-operation model in
-  [ADR-0005](./docs/adr/0005-automatic-hybrid-media-routing.md).
-- WebRTC and LiveKit own network and media adaptation. Do not add custom quality
+  str0m ([media pipeline](./docs/architecture/media.md)). Route changes must
+  preserve the single-graph, single-operation model in
+  [signaling and routing](./docs/architecture/routing.md).
+- WebRTC/str0m own network and media adaptation. Do not add custom quality
   scores, ladders, all-pairs probes, periodic rebalancing, or hand-built SFU
-  representations without a new accepted decision backed by primary evidence.
+  representations: each would fight the automatic controller or duplicate it.
+  [Signaling and routing](./docs/architecture/routing.md) records why.
 
 ## Durable Truth
 
 - Start substantial work by reading [project memory](./docs/project-memory.md),
   [status](./docs/status.md), [TODO](./docs/todo.md), and only the relevant
-  product module, ADR, research, or operations document. Then inspect branch,
-  HEAD, status, staged diff, and worktrees.
+  [architecture](./docs/architecture/README.md), product or operations document.
+  Then inspect branch, HEAD, status, staged diff, and worktrees.
 - Use the [standards index](./docs/standards/README.md) and
   [documentation owner map](./docs/standards/documentation.md#owners): product
   behavior, engineering, visual language, versions, evidence and operations each
   have one owner. TODO is the only work ledger; Git/PRs own completed history.
+- Piik has one current version: no compatibility shims, version negotiation or
+  paths for older Apps, pages or clients. The App, Server and Web client always
+  ship together from one revision; a mismatched peer is rejected.
 - Give every durable fact one owner. Update memory or status only when its compact
   snapshot materially changes. Ordinary UI detail, protocol field listings,
   self-evident code, test inventories, routine validation, and agent process do
@@ -115,22 +120,22 @@ invocation; follow their relevant guidance without importing unrelated workflows
 ## Engineering Defaults
 
 - Repeated meanings across code, UI, copy, configuration and lifecycle follow
-  one owned [contextual contract](./docs/standards/engineering.md#contextual-consistency).
+  one owned [contextual contract](./docs/architecture/modules.md#contextual-consistency).
   Check related producers and consumers before adding another local rule;
   preserve differences justified by authority, scope or user intent.
 - UI changes must follow the shared [visual language](./docs/standards/visual-language.md):
   cast, semantic colours, result panels and motion have one owner. Extend the
   existing preview when adding a new meaning; do not invent scene-local rules.
-- Follow [engineering and interface boundaries](./docs/standards/engineering.md):
+- Follow [engineering and interface boundaries](./docs/architecture/modules.md):
   simple cohesive modules, clear state/resource owners, mature reuse and narrow
   contracts. After a material module, remove additions that the accepted result
   does not need; total complexity matters more than marginal performance gains.
 - [Versioning](./docs/standards/versioning.md) separates build identity, wire,
-  storage and live generations, and owns the public compatibility design.
-  Preserve published compatibility promises; remove replaced private experiments
-  without aliases, dual readers/writers or migrations for stale private clients.
+  storage and live generations, and owns the change rule. There is one current
+  build: remove replaced private experiments without aliases, dual readers/writers
+  or migrations for a previous build.
 - Use primary sources for non-trivial design and bugs. Add focused tests in
   proportion to risk; batch full browser/network/endurance checks at acceptance.
-- Keep scripts deterministic, fast, cross-platform and CI-runnable.
+- Keep scripts deterministic, fast and runnable on Windows.
 - Before finishing material work, inspect status, report untracked artifacts,
   and stage requested files unless told otherwise.

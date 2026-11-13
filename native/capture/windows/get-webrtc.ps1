@@ -25,7 +25,12 @@ function Expand-PinnedArchive($pin, [string]$name, [string]$destination, [string
     $stamp = $archive + '.extracted'
     if (!(Test-Path (Join-Path $destination $entry)) -or !(Test-Path $stamp) -or
         (Get-Content -Raw $stamp).Trim() -ne $pin.sha256) {
-        & tar -xf $archive -C $destination $entry
+        # Windows' bsdtar accepts a drive-letter path unchanged. A GNU tar that
+        # appears first on PATH reads "D:\..." as a remote "host:path" and fails,
+        # so name the system archive tool explicitly and fall back by PATH.
+        $systemTar = Join-Path $env:SystemRoot 'System32\tar.exe'
+        $tar = if (Test-Path $systemTar) { $systemTar } else { 'tar' }
+        & $tar -xf $archive -C $destination $entry
         if ($LASTEXITCODE -ne 0) { throw "Could not unpack native WebRTC dependency: $name" }
         [IO.File]::WriteAllText($stamp, $pin.sha256 + "`n")
     }

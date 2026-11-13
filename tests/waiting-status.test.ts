@@ -1,10 +1,10 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { StageOverlay } from "../src/client/components/living/Stage";
-import { LoadingStatus } from "../src/client/components/living/WaitingStatus";
-import { WelcomeCipher, WelcomeLine } from "../src/client/components/living/WelcomeLine";
-import { STATUS_SCENARIOS } from "../src/client/pages/status-preview-scenarios";
+import { StageOverlay } from "../src/client/ui/components/people/Stage";
+import { LoadingStatus } from "../src/client/ui/components/people/WaitingStatus";
+import { WelcomeCipher, WelcomeLine } from "../src/client/ui/components/shell/WelcomeLine";
+import { STATUS_SCENARIOS } from "../src/client/pages/preview/status-preview-scenarios";
 import { deriveViewerPresentation } from "../src/client/media/viewer-presentation";
 import { deriveViewerStatus } from "../src/client/ui/media-status";
 import { locales } from "../src/client/locales";
