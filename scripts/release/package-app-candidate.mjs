@@ -306,7 +306,7 @@ try {
   if (target.captureName) {
     run(
       process.execPath,
-      [join(repositoryRoot, "scripts", "check-rust.mjs"), "--capture-only"],
+      [join(repositoryRoot, "scripts", "checks", "check-rust.mjs"), "--capture-only"],
       repositoryRoot,
     );
     capture = join(repositoryRoot, "build", "rust-check", target.captureName);

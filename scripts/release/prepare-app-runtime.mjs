@@ -58,7 +58,9 @@ export function sha256(path) {
 
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {
-    cwd, encoding: "utf8", windowsHide: true, timeout: 120_000,
+    // The capture build compiles with MSVC and may fetch its pinned WebRTC SDK
+    // on first use; two minutes is a probe deadline, not a build deadline.
+    cwd, encoding: "utf8", windowsHide: true, timeout: 30 * 60_000,
   });
   if (result.error) throw result.error;
   return result;
@@ -101,7 +103,7 @@ export function captureHelper(repositoryRoot, target) {
   if (!existsSync(helper)) {
     process.stdout.write("Building the native capture helper\n");
     const result = run(process.execPath,
-      [join(repositoryRoot, "scripts", "check-rust.mjs"), "--capture-only"], repositoryRoot);
+      [join(repositoryRoot, "scripts", "checks", "check-rust.mjs"), "--capture-only"], repositoryRoot);
     if (result.status !== 0) {
       throw new Error((result.stderr || result.stdout).trim() || "Native capture build failed");
     }
