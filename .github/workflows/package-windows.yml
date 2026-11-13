@@ -47,10 +47,12 @@ jobs:
       - name: Stage helper processes
         run: npm run app:runtime -- --target release
 
-      - name: Assemble archive
+      - name: Assemble package
         shell: pwsh
         run: |
-          $stage = Join-Path $env:RUNNER_TEMP "piik-package"
+          # The artifact action archives this directory itself, so the download
+          # is already one zip. Extracting it yields the runnable tree directly.
+          $stage = Join-Path $env:GITHUB_WORKSPACE "piik-windows-amd64"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item "target/release/piik-app.exe" -Destination $stage
           Copy-Item "target/release/runtime" -Destination $stage -Recurse
@@ -59,27 +61,10 @@ jobs:
             "$env:PIIK_REVISION`n",
             [System.Text.Encoding]::ASCII)
 
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $zipPath = Join-Path $env:GITHUB_WORKSPACE "piik-windows-amd64.zip"
-          if (Test-Path $zipPath) { Remove-Item $zipPath }
-          $zip = [System.IO.Compression.ZipFile]::Open(
-            $zipPath, [System.IO.Compression.ZipArchiveMode]::Create)
-          try {
-            Get-ChildItem -Path $stage -Recurse -File | ForEach-Object {
-              # Archive entries always use forward slashes, so Linux unzip
-              # recreates the same tree Windows does.
-              $relative = $_.FullName.Substring($stage.Length + 1).Replace('\', '/')
-              [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-                $zip, $_.FullName, $relative,
-                [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
-            }
-          } finally {
-            $zip.Dispose()
-          }
-
-      - name: Upload archive
+      - name: Upload package
         uses: actions/upload-artifact@v4
         with:
           name: piik-windows-amd64
-          path: piik-windows-amd64.zip
+          # Contents, not the directory itself: one level, no nested folder.
+          path: piik-windows-amd64/**
           if-no-files-found: error
